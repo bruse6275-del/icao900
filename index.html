@@ -659,4 +659,9 @@ initSync();
 })();
 </script><script>(function(){const ZL=[0.9,1,1.1,1.2,1.3,1.45,1.6],K='icao900.zoom';let i=1;try{const j=ZL.indexOf(+localStorage.getItem(K));if(j>=0)i=j}catch(e){}
 function ap(){const z=ZL[i];document.body.style.zoom=z;document.getElementById('zVal').textContent=Math.round(z*100)+'%';try{localStorage.setItem(K,String(z))}catch(e){}}
-document.getElementById('zIn').onclick=()=>{if(i<ZL.length-1){i++;ap()}};document.getElementById('zOut').onclick=()=>{if(i>0){i--;ap()}};ap();})();</script><script>if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(function(){})}</script></body></html>
+document.getElementById('zIn').onclick=()=>{if(i<ZL.length-1){i++;ap()}};document.getElementById('zOut').onclick=()=>{if(i>0){i--;ap()}};ap();})();</script><script>if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(function(){})}</script><script>(function(){function g(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
+fetch('seed.json',{cache:'no-store'}).then(function(r){return r.ok?r.json():null}).then(function(s){if(!s||!s.v)return;var F='icao900.seed.v';if(localStorage.getItem(F)===s.v)return;
+var ch=false;var m=g('icao900.srs.v1')||{};for(var k in s.srs){var a=m[k],b=s.srs[k];if(!a||(b.t||0)>(a.t||0)){m[k]=b;ch=true}}localStorage.setItem('icao900.srs.v1',JSON.stringify(m));
+var n=g('icao900.nb.v1')||{};for(var k in s.nb){var a=n[k],b=s.nb[k];if(!a||(b.t||0)>(a.t||0)){n[k]=b;ch=true}}localStorage.setItem('icao900.nb.v1',JSON.stringify(n));
+var c=g('icao900.custom.v1')||{o:{},a:{},op:{}};['o','a','op'].forEach(function(p){c[p]=c[p]||{};var src=s.custom[p]||{};for(var k in src){var a=c[p][k],b=src[k];if(!a||((b&&b.t)||0)>((a&&a.t)||0)){c[p][k]=b;ch=true}}});localStorage.setItem('icao900.custom.v1',JSON.stringify(c));
+localStorage.setItem(F,s.v);if(ch){if(typeof toast==='function')toast('已同步电脑上的单词本和练习记录');setTimeout(function(){location.reload()},900)}}).catch(function(){})})();</script></body></html>
