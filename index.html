@@ -1,6 +1,6 @@
 <!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0;font:14px system-ui,-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif}img{max-width:100%}[hidden]{display:none!important}</style><style>.zoomctl{margin-left:auto;flex:none;position:sticky;right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));display:flex;align-items:center;gap:4px;padding:4px max(16px,env(safe-area-inset-right,0px)) 4px 8px;margin-right:calc(-1 * max(16px,env(safe-area-inset-right,0px)));background:var(--sheet);box-shadow:-10px 0 10px -6px var(--sheet)}
 .zoomctl button{padding:3px 10px;font-size:14px;font-family:var(--display);cursor:pointer}
-.zoomctl span{font-family:var(--mono);font-size:12px;color:var(--muted);min-width:3.2em;text-align:center}</style><style>.nbt tr.nbh td{background:var(--chip-ins);font-family:var(--display);font-weight:600;letter-spacing:.03em;padding:6px 10px;color:var(--ink)}</style><style>.nbt tr.nbh{cursor:pointer;user-select:none}.nbt tr.nbh:hover td{filter:brightness(.97)}.nbt tr.nbh .ar{display:inline-block;width:1em;color:var(--accent)}.nbt tr.nbh .gc{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:400;margin-left:6px}.nbt tr[hidden]{display:none}</style><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#14202B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ICAO900"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="icon-192.png"></head><body><title>ICAO 900 Readback</title>
+.zoomctl span{font-family:var(--mono);font-size:12px;color:var(--muted);min-width:3.2em;text-align:center}</style><style>.nbt tr.nbh td{background:var(--chip-ins);font-family:var(--display);font-weight:600;letter-spacing:.03em;padding:6px 10px;color:var(--ink)}</style><style>.nbt tr.nbh{cursor:pointer;user-select:none}.nbt tr.nbh:hover td{filter:brightness(.97)}.nbt tr.nbh .ar{display:inline-block;width:1em;color:var(--accent)}.nbt tr.nbh .gc{font-family:var(--mono);font-size:12px;color:var(--muted);font-weight:400;margin-left:6px}.nbt tr[hidden]{display:none}</style><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#14202B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ICAO900"><meta name="apple-mobile-web-app-status-bar-style" content="default"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="icon" href="icon-192.png"><style>.nbw{background:color-mix(in srgb,#F2C230 38%,transparent);border-radius:2px;padding:0 1px}.nbin{margin:8px 0 2px;display:flex;flex-wrap:wrap;gap:6px;align-items:center}.nbin .nbl{font-size:12px;color:var(--muted);font-family:var(--mono);margin-right:2px}.nbc{font-size:13px;border:1px solid color-mix(in srgb,#F2C230 60%,var(--rule));background:color-mix(in srgb,#F2C230 14%,var(--sheet));padding:2px 8px;border-radius:3px}.nbc i{font-style:normal;font-family:var(--mono);color:var(--accent)}.nbc em{font-style:normal;color:var(--muted)}.nbc u{text-decoration:none;font-family:var(--mono);font-size:11px;color:var(--muted)}</style></head><body><title>ICAO 900 Readback</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <style>
 /* Layout: approach-chart paper; each sentence is a strip of skeleton blocks, shorthand on top, English beneath */
@@ -385,7 +385,10 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',
 const pad3=n=>String(n).padStart(3,'0');
 const lab=s=>(s.c+1)+'-'+pad3(s.l);
 const tplHTML=x=>esc(x).replace(/\[([A-Z /\-]+)\]/g,'<span class="slot">$1</span>');
-const enHTML=s=>s.h.map(([x,v])=>v===1?'<mark>'+esc(x)+'</mark>':v===2?'<span class="sep">‖</span>':v===3?'<b class="anc">'+esc(x)+'</b>':esc(x)).join('');
+const enHTML=s=>nbMark(s.h.map(([x,v])=>v===1?'<mark>'+esc(x)+'</mark>':v===2?'<span class="sep">‖</span>':v===3?'<b class="anc">'+esc(x)+'</b>':esc(x)).join(''));
+let NBREC=null;function nbRegex(){if(NBREC!==null)return NBREC;let ws=[];try{ws=Object.values(nb).filter(v=>!v.del&&v.w).map(v=>v.w)}catch(e){return null}ws.sort((a,b)=>b.length-a.length);NBREC=ws.length?new RegExp('(^|[^A-Za-z])('+ws.map(w=>w.replace(/[.*+?^${}()|[\]\\]/g,'\\$&').replace(/\s+/g,'[\\s-]+')).join('|')+')(?![A-Za-z])','gi'):false;return NBREC}
+function nbMark(html){const re=nbRegex();if(!re)return html;return html.split(/(<[^>]+>)/).map(p=>p.charAt(0)==='<'?p:p.replace(re,(m,a,b)=>a+'<span class="nbw" title="已在单词本">'+b+'</span>')).join('')}
+function nbCardHTML(id){let it=[];try{it=nbItems().filter(e=>e[2].k===id)}catch(e){return ''}if(!it.length)return '';return '<div class="nbin"><span class="nbl">本节单词本 · '+it.length+'</span>'+it.map(([k,v,P])=>{const [sy,zh]=nbInfo(v);return '<span class="nbc"><b>'+esc(v.w)+'</b>'+(sy&&sy.toLowerCase()!==v.w.toLowerCase()?' <i>'+esc(sy)+'</i>':'')+(zh?' <em>'+esc(zh)+'</em>':'')+' <u>'+esc(P.lab)+'</u></span>'}).join('')+'</div>'}
 const exHTML=s=>exText(s)?esc(exText(s)):'<span style="color:var(--muted);font-weight:400">—（全句都是固定骨架，直接背）</span>';
 function rowHTML(s){return '<div class="row" data-src="'+lab(s)+'"><div class="no">'+lab(s)+'</div><div class="en">'+enHTML(s)+'</div><div class="ex"><span>只写</span>'+exHTML(s)+'</div><div class="sh">完整速记：'+esc(applyCus(s.sh))+'</div><div class="zh">'+esc(s.zh)+'</div></div>'}
 // stats
@@ -470,7 +473,7 @@ function symSeg(seg){const t=normEn(seg);const out=[];const wre=/[A-Za-z0-9#'][A
  return out.join(' ')}
 function symLine(s){if(!PHC)buildPhrases();return (s.sg||[s.en]).map(g=>symSeg(g)||'—').join(' | ')}
 function cardHTML(k){const ss=DATA.filter(s=>s.g===k.id);
- return '<div class="card2"><div class="hd"><div class="ttl"><b>'+k.id+'</b><h4>'+esc(k.zh)+'</h4><span>'+ss.length+' 句</span></div>'+k.fr.map(f=>'<div class="frame">'+tplHTML(f)+'</div>').join('')+'<div class="shf">速记：'+esc(k.sh)+'</div><button data-sk="'+k.id+'" data-c="'+k.c+'" class="go">练这张卡</button></div><div class="rows">'+ss.map(rowHTML).join('')+'</div></div>'}
+ return '<div class="card2"><div class="hd"><div class="ttl"><b>'+k.id+'</b><h4>'+esc(k.zh)+'</h4><span>'+ss.length+' 句</span></div>'+k.fr.map(f=>'<div class="frame">'+tplHTML(f)+'</div>').join('')+'<div class="shf">速记：'+esc(k.sh)+'</div>'+nbCardHTML(k.id)+'<button data-sk="'+k.id+'" data-c="'+k.c+'" class="go">练这张卡</button></div><div class="rows">'+ss.map(rowHTML).join('')+'</div></div>'}
 $('#chapList').innerHTML=CH.map((c,i)=>{const n=DATA.filter(s=>s.c===i).length;const ks=CARDS.filter(k=>k.c===i);
  return '<details class="chap" data-c="'+i+'"><summary><span class="t">第'+CN[i]+'章 '+c+'</span><span class="r">'+n+' 句 · '+ks.length+' 张卡</span><div class="sklist">'+ks.map(k=>'<span><b class="mono" style="color:var(--accent)">'+k.id+'</b> '+esc(k.zh)+'</span>').join('')+'</div></summary><div class="body"></div></details>'}).join('');
 document.querySelectorAll('details.chap').forEach(d=>d.addEventListener('toggle',()=>{if(d.open&&!d.dataset.r){d.dataset.r=1;const ci=+d.dataset.c;d.querySelector('.body').innerHTML=varsHTML(ci)+CARDS.filter(k=>k.c===ci).map(cardHTML).join('');
@@ -583,7 +586,7 @@ const nbItems=()=>Object.entries(nb).filter(([k,v])=>!v.del).map(e=>{e[2]=nbPos(
 const CARDIX={};CARDS.forEach((c,i)=>CARDIX[c.id]=i);
 function nbPos(v){let s=null;const m=/^(\d)-(\d{3})$/.exec(v.src||'');if(m){s=DATA.find(x=>x.c===+m[1]-1&&x.l===+m[2]);if(s&&!nbRe(v.w).test(s.en))s=null}
 if(!s){let best=null;for(const x of DATA){if(nbRe(v.w).test(x.en)){const o=(CARDIX[x.g]??999)*1e4+x.l;if(!best||o<best.o)best={o,x}}}s=best&&best.x}
-if(!s)return {o:9e9,g:'其他（句子里找不到）',lab:''};const card=CARDS[CARDIX[s.g]];return {o:(CARDIX[s.g]??999)*1e4+s.l,g:'第'+CN[s.c]+'章 · '+s.g+(card&&card.zh?' '+card.zh:''),lab:lab(s)}}
+if(!s)return {o:9e9,g:'其他（句子里找不到）',lab:''};const card=CARDS[CARDIX[s.g]];return {k:s.g,o:(CARDIX[s.g]??999)*1e4+s.l,g:'第'+CN[s.c]+'章 · '+s.g+(card&&card.zh?' '+card.zh:''),lab:lab(s)}}
 const reEsc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
 const ALTS=DICT.flatMap(([al,sym,zh])=>al.map(a=>[a,sym,zh])).sort((x,y)=>y[0].length-x[0].length);
 const BIGRE=new RegExp('(?<![A-Za-z-])(?:'+ALTS.map(x=>'('+x[0].replace(/\s+/g,'[\\s-]+')+')').join('|')+')(?![A-Za-z-])','gi');
@@ -596,7 +599,7 @@ function look(w){const s=w.trim();const syms=[],zhs=[];let last=0,m;BIGRE.lastIn
 const nbRe=w=>new RegExp('(^|[^A-Za-z])'+reEsc(w).replace(/\s+/g,'[\\s-]+')+'(?![A-Za-z])','i');
 function nbHit(s){for(const [k,v] of nbItems()){if(nbRe(v.w).test(s.en))return true}return false}
 function toast(m){let el=$('#toast');if(!el){el=document.createElement('div');el.id='toast';el.setAttribute('role','status');document.body.appendChild(el)}el.textContent=m;el.hidden=false;clearTimeout(el._t);el._t=setTimeout(()=>el.hidden=true,1800)}
-function nbSave(){try{localStorage.setItem(NBKEY,JSON.stringify(nb))}catch(e){}if(dbh){clearTimeout(nbTimer);nbTimer=setTimeout(nbFlush,1200)}renderNB()}
+function nbSave(){NBREC=null;try{localStorage.setItem(NBKEY,JSON.stringify(nb))}catch(e){}if(dbh){clearTimeout(nbTimer);nbTimer=setTimeout(nbFlush,1200)}refreshAll()}
 async function nbFlush(){if(!dbh)return;if(nbWriting){nbAgain=true;return}nbWriting=true;try{await dbh.doc('data/users/'+uid+'/notebook').set({items:nb})}catch(e){try{await new Promise(r=>setTimeout(r,1000));await dbh.doc('data/users/'+uid+'/notebook').set({items:nb})}catch(e2){}}nbWriting=false;if(nbAgain){nbAgain=false;nbFlush()}}
 function nbAdd(w,src){w=(w||'').replace(/\s+/g,' ').trim().replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9')]+$/g,'');if(!w){return}if(w.length>60){toast('选得太长了，选一个词或短语即可');return}const k=w.toLowerCase();if(nb[k]&&!nb[k].del){toast('已在单词本里：'+w);return}nb[k]={w:w,src:src||'',t:Date.now()};nbSave();toast('已加入单词本：'+w)}
 function nbDel(k){if(!nb[k])return;nb[k]=Object.assign({},nb[k],{del:true,t:Date.now()});nbSave()}
@@ -669,4 +672,44 @@ localStorage.setItem(F,s.v);var cnt=Object.keys(n).filter(function(k){return !n[
 if(ch){try{sessionStorage.setItem(G,String(tries+1))}catch(e){}msg('已同步：单词本 '+cnt+' 个，页面即将刷新');setTimeout(function(){location.reload()},1200)}else{try{sessionStorage.removeItem(G)}catch(e){}if(force)msg('已经是最新：单词本 '+cnt+' 个')}}).catch(function(err){if(force)msg('同步失败，请确认已联网（'+err.message+'）')})}
 window.icaoSync=sync;
 var bar=document.getElementById('nbCount');if(bar&&bar.parentNode){var b=document.createElement('button');b.id='nbSync';b.textContent='从电脑同步';b.onclick=function(){sync(true)};bar.parentNode.insertBefore(b,bar)}
-sync(false)})();</script></body></html>
+sync(false)})();</script><style>#csPanel{border:1px solid var(--rule);background:var(--sheet);padding:12px 14px;margin:10px 0;max-width:640px}#csPanel[hidden]{display:none}#csPanel input{width:100%;font-family:var(--mono);font-size:14px;padding:6px 8px;margin:6px 0;border:1px solid var(--rule);background:var(--paper);color:var(--ink)}#csPanel .row2{display:flex;gap:8px;flex-wrap:wrap}#csStat{font-size:13px;color:var(--muted);margin-top:6px}#csPanel ol{margin:6px 0 4px 18px;padding:0;font-size:14px}</style>
+<script>(function(){
+var TK='icao900.gh.token',GK='icao900.gist.id',LK='icao900.gh.last',DESC='ICAO900 sync',FN='icao900.json',API='https://api.github.com';
+var KS={srs:'icao900.srs.v1',nb:'icao900.nb.v1',custom:'icao900.custom.v1'};
+function g(k){try{return JSON.parse(localStorage.getItem(k)||'null')}catch(e){return null}}
+var raw=Storage.prototype.setItem,applying=false,timer=null,busy=false,again=false;
+function tok(){try{return localStorage.getItem(TK)||''}catch(e){return ''}}
+function stat(m){var el=document.getElementById('csStat');if(el)el.textContent=m;var b=document.getElementById('csBtn');if(b)b.textContent=tok()?'云同步 ✓':'云同步'}
+function local(){return {srs:g(KS.srs)||{},nb:g(KS.nb)||{},custom:g(KS.custom)||{o:{},a:{},op:{}}}}
+function mergeMap(dst,src){var ch=0;for(var k in src){var a=dst[k],b=src[k];if(!a||((b&&b.t)||0)>((a&&a.t)||0)){dst[k]=b;ch++}}return ch}
+function merge(L,R){var out={srs:Object.assign({},L.srs),nb:Object.assign({},L.nb),custom:{o:Object.assign({},L.custom.o||{}),a:Object.assign({},L.custom.a||{}),op:Object.assign({},L.custom.op||{})}};
+ var inL=mergeMap(out.srs,R.srs||{})+mergeMap(out.nb,R.nb||{});var rc=R.custom||{};['o','a','op'].forEach(function(p){inL+=mergeMap(out.custom[p],rc[p]||{})});return [out,inL]}
+function same(a,b){return JSON.stringify(a)===JSON.stringify(b)}
+function H(){return {'Authorization':'Bearer '+tok(),'Accept':'application/vnd.github+json'}}
+function api(path,opt){opt=opt||{};opt.headers=Object.assign(H(),opt.headers||{});opt.cache='no-store';return fetch(API+path,opt).then(function(r){if(r.status===401)throw new Error('令牌无效或已过期');if(r.status===404)throw new Error('404');if(!r.ok)throw new Error('GitHub 返回 '+r.status);return r.status===204?null:r.json()})}
+function findGist(){var id=localStorage.getItem(GK);if(id)return Promise.resolve(id);
+ return api('/gists?per_page=100').then(function(list){var x=(list||[]).filter(function(x){return x.description===DESC&&x.files&&x.files[FN]})[0];if(x){raw.call(localStorage,GK,x.id);return x.id}
+  return api('/gists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:DESC,public:false,files:{'icao900.json':{content:JSON.stringify(local())}}})}).then(function(n){raw.call(localStorage,GK,n.id);return n.id})})}
+function readGist(id){return api('/gists/'+id).then(function(j){var f=j.files&&j.files[FN];if(!f)return {};if(f.truncated)return fetch(f.raw_url,{cache:'no-store'}).then(function(r){return r.json()});try{return JSON.parse(f.content||'{}')}catch(e){return {}}})}
+function applyLocal(m){applying=true;try{raw.call(localStorage,KS.srs,JSON.stringify(m.srs));raw.call(localStorage,KS.nb,JSON.stringify(m.nb));raw.call(localStorage,KS.custom,JSON.stringify(m.custom))}finally{applying=false}
+ try{marks=m.srs;nb=m.nb;cus=m.custom;if(!cus.op)cus.op={};if(typeof NBREC!=='undefined')NBREC=null;if(typeof PHC!=='undefined')PHC=null;if(typeof refreshAll==='function')refreshAll()}catch(e){setTimeout(function(){location.reload()},300)}}
+function sync(manual){if(!tok()){if(manual)stat('请先填入令牌');return Promise.resolve()}if(busy){again=true;return Promise.resolve()}busy=true;stat('正在同步…');var gid;
+ return findGist().then(function(id){gid=id;return readGist(id)}).catch(function(e){if(e.message==='404'){localStorage.removeItem(GK);return findGist().then(function(id){gid=id;return readGist(id)})}throw e}).then(function(R){var L=local();var r=merge(L,R),M=r[0];
+  if(!same(M,L))applyLocal(M);var p=same(M,{srs:R.srs||{},nb:R.nb||{},custom:R.custom||{}})?null:api('/gists/'+gid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({files:{'icao900.json':{content:JSON.stringify(M)}}})});
+  return Promise.resolve(p).then(function(){var n=Object.keys(M.nb).filter(function(k){return !M.nb[k].del}).length;var t=new Date();var s=('0'+t.getHours()).slice(-2)+':'+('0'+t.getMinutes()).slice(-2);raw.call(localStorage,LK,s);stat('已同步 '+s+' · 单词本 '+n+' 个 · 练习 '+Object.keys(M.srs).length+' 句');if(manual&&typeof toast==='function')toast('三端同步完成')})})
+ .catch(function(e){stat(navigator.onLine===false||/fetch|network|Load failed/i.test(e.message)?'离线中，联网后会自动同步':'同步失败：'+e.message)}).then(function(){busy=false;if(again){again=false;sync()}})}
+Storage.prototype.setItem=function(k,v){raw.call(this,k,v);if(!applying&&this===localStorage&&(k===KS.srs||k===KS.nb||k===KS.custom)&&tok()){clearTimeout(timer);timer=setTimeout(sync,4000)}};
+window.icaoCloud=sync;
+var bar=document.getElementById('nbCount');if(bar&&bar.parentNode){var b=document.createElement('button');b.id='csBtn';b.textContent='云同步';bar.parentNode.insertBefore(b,bar);
+ var pn=document.createElement('div');pn.id='csPanel';pn.hidden=true;pn.innerHTML='<b>三端云同步（电脑 · 手机 · iPad）</b><ol><li>在 GitHub 生成一个只有 gist 权限的令牌：<a href="https://github.com/settings/tokens/new?scopes=gist&description=ICAO900%20sync" target="_blank" rel="noopener">点这里</a>，Expiration 选 No expiration，点 Generate token，复制 ghp_ 开头的那串。</li><li>粘贴到下面，点"保存并同步"。三台设备各做一次，用同一个令牌。</li></ol><input id="csTok" type="password" autocomplete="off" placeholder="ghp_…" aria-label="GitHub 令牌"><div class="row2"><button id="csSave">保存并同步</button><button id="csNow">立即同步</button><button id="csOff">在这台设备停用</button></div><div id="csStat"></div><p class="note" style="margin:6px 0 0">记录存在你 GitHub 账号下的一个私密 gist 里。改动后几秒自动上传，每次打开或切回 App 时自动拉取。离线时照常记录，联网后自动合并。</p>';
+ bar.parentNode.parentNode.insertBefore(pn,bar.parentNode.nextSibling);
+ b.onclick=function(){pn.hidden=!pn.hidden};
+ document.getElementById('csSave').onclick=function(){var v=document.getElementById('csTok').value.trim();if(!v){stat('请先粘贴令牌');return}raw.call(localStorage,TK,v);document.getElementById('csTok').value='';sync(true)};
+ document.getElementById('csNow').onclick=function(){sync(true)};
+ document.getElementById('csOff').onclick=function(){localStorage.removeItem(TK);localStorage.removeItem(GK);stat('这台设备已停用云同步，本地记录保留');};
+ stat(tok()?('已开启'+(localStorage.getItem(LK)?' · 上次同步 '+localStorage.getItem(LK):'')):'未开启')}
+document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')sync()});
+window.addEventListener('online',function(){sync()});
+setTimeout(function(){sync()},1500);
+})();</script>
+</body></html>
