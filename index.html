@@ -317,6 +317,7 @@ html{scroll-behavior:smooth}
       <label>骨架卡<select id="dSk"></select></label>
       <label>长度<select id="dLen"><option value="all">全部</option><option value="S">短句 ≤8词</option><option value="M">中句 9–15词</option><option value="L">长句 ≥16词</option></select></label>
       <label>范围<select id="dScope"><option value="all">全部句子</option><option value="due">今日到期复习</option><option value="new">还没练过的</option><option value="wrong">只练错题</option><option value="nb">含单词本里的词</option></select></label>
+      <label>题号<input id="dNum" type="text" inputmode="text" autocomplete="off" placeholder="如 7-10~7-50, 8-3, 6" aria-label="按题号选择" style="width:100%;font-family:var(--mono)"><span class="note" id="dNumNote" style="font-size:12px"></span></label>
       <label>顺序<select id="dOrder"><option value="seq">按题号</option><option value="rand">乱序</option></select></label>
       <label>自动播放<span class="autobox"><input type="checkbox" id="dAuto"> 换句后自动播放</span></label>
       <label>语速 <span id="rateVal" class="mono">0.75×</span><input type="range" id="dRate" min="0.6" max="1.3" step="0.05" value="0.75"></label>
@@ -553,10 +554,18 @@ const autoOn=()=>$('#dAuto').checked;
 $('#dAuto').onchange=()=>{try{localStorage.setItem(AUTOKEY,$('#dAuto').checked?'1':'0')}catch(e){}};
 const segsOf=s=>s.sg||[s.en];
 const DKEY='icao900.drill.v1';
-function saveDrill(){try{const s=pool[idx];localStorage.setItem(DKEY,JSON.stringify({mode:$('#dMode').value,chap:$('#dChap').value,sk:$('#dSk').value,len:$('#dLen').value,scope:$('#dScope').value,order:$('#dOrder').value,rate:$('#dRate').value,cur:s?id(s):null,step:step,ord:$('#dOrder').value==='rand'?pool.map(id):null}))}catch(e){}}
+function saveDrill(){try{const s=pool[idx];localStorage.setItem(DKEY,JSON.stringify({mode:$('#dMode').value,chap:$('#dChap').value,sk:$('#dSk').value,len:$('#dLen').value,num:$('#dNum')?$('#dNum').value:'',scope:$('#dScope').value,order:$('#dOrder').value,rate:$('#dRate').value,cur:s?id(s):null,step:step,ord:$('#dOrder').value==='rand'?pool.map(id):null}))}catch(e){}}
 function loadDrill(){try{return JSON.parse(localStorage.getItem(DKEY)||'null')}catch(e){return null}}
-function buildPool(keep,ordIds){const keepId=keep===true&&pool[idx]?id(pool[idx]):(typeof keep==='string'?keep:null);const c=$('#dChap').value,sk=$('#dSk').value,ln=$('#dLen').value,sc=$('#dScope').value;
- pool=DATA.filter(s=>(c==='all'||s.c==+c)&&(sk==='all'||s.g===sk)&&(ln==='all'||wl(s)===ln)&&(sc==='all'||(sc==='due'&&isDue(s))||(sc==='new'&&!st(s))||(sc==='wrong'&&st(s)&&st(s).b===0)||(sc==='nb'&&nbHit(s))));
+function parseNums(str){str=(str||'').trim();if(!str)return null;const set=new Set();let bad=[];
+ const toks=str.replace(/[，、；;]/g,',').replace(/\s*(~|～|—|–|到|至|to)\s*/gi,'~').split(/[,\s]+/).filter(Boolean);
+ const pt=(x,cdef)=>{let m=/^([1-8])[-.](\d{1,3})$/.exec(x);if(m)return [+m[1]-1,+m[2]];m=/^(\d{1,3})$/.exec(x);if(m&&cdef!=null)return [cdef,+m[1]];return null};
+ for(const tk of toks){const parts=tk.split('~');if(parts.length===1){if(/^[1-8]$/.test(tk)){DATA.forEach(s=>{if(s.c===+tk-1)set.add(id(s))});continue}const p=pt(tk);if(!p){bad.push(tk);continue}const s=DATA.find(x=>x.c===p[0]&&x.l===p[1]);if(s)set.add(id(s));else bad.push(tk);continue}
+  if(parts.length!==2){bad.push(tk);continue}const a=pt(parts[0]);const b=a?pt(parts[1],a[0]):null;if(!a||!b){bad.push(tk);continue}
+  const lo=a[0]*1e4+a[1],hi=b[0]*1e4+b[1];DATA.forEach(s=>{const v=s.c*1e4+s.l;if(v>=Math.min(lo,hi)&&v<=Math.max(lo,hi))set.add(id(s))})}
+ return {set,bad}}
+function numNote(r){const el=$('#dNumNote');if(!el)return;if(!r){el.textContent='';return}el.textContent='题号选中 '+r.set.size+' 句'+(r.bad.length?'；没认出：'+r.bad.join('、'):'')}
+function buildPool(keep,ordIds){const keepId=keep===true&&pool[idx]?id(pool[idx]):(typeof keep==='string'?keep:null);const c=$('#dChap').value,sk=$('#dSk').value,ln=$('#dLen').value,sc=$('#dScope').value;const NR=parseNums($('#dNum')?$('#dNum').value:'');numNote(NR);
+ pool=DATA.filter(s=>(!NR||NR.set.has(id(s)))&&(c==='all'||s.c==+c)&&(sk==='all'||s.g===sk)&&(ln==='all'||wl(s)===ln)&&(sc==='all'||(sc==='due'&&isDue(s))||(sc==='new'&&!st(s))||(sc==='wrong'&&st(s)&&st(s).b===0)||(sc==='nb'&&nbHit(s))));
  if($('#dOrder').value==='rand'){for(let i=pool.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[pool[i],pool[j]]=[pool[j],pool[i]]}}
  if(ordIds&&$('#dOrder').value==='rand'){const pos=new Map(ordIds.map((x,i)=>[x,i]));pool.sort((a,b)=>(pos.has(id(a))?pos.get(id(a)):1e9)-(pos.has(id(b))?pos.get(id(b)):1e9))}
  idx=0;if(keepId){const j=pool.findIndex(s=>id(s)===keepId);if(j>=0)idx=j}revealed=false;played=false;step=1;render();saveDrill()}
@@ -582,6 +591,7 @@ function mark(v){if(!pool.length)return;const s=pool[idx],o=st(s)||{b:0};const b
 $('#bPlay').onclick=play;$('#bShow').onclick=()=>{revealed=true;render()};$('#bOk').onclick=()=>mark('ok');$('#bAgain').onclick=()=>mark('again');$('#bPrev').onclick=()=>go(-1);$('#bNext').onclick=()=>go(1);
 $('#dRate').oninput=e=>{$('#rateVal').textContent=(+e.target.value).toFixed(2)+'×';saveDrill()};
 ['#dSk','#dLen','#dScope'].forEach(s=>$(s).onchange=()=>buildPool(true));
+$('#dNum').addEventListener('change',()=>{const r=parseNums($('#dNum').value);if(r&&r.set.size&&($('#dChap').value!=='all'||$('#dSk').value!=='all')){$('#dChap').value='all';fillSk()}buildPool()});$('#dNum').addEventListener('keydown',e=>{e.stopPropagation();if(e.key==='Enter'){e.preventDefault();$('#dNum').blur()}});
 $('#dOrder').onchange=()=>buildPool();
 $('#dChap').onchange=()=>{fillSk();buildPool(true)};
 $('#dMode').onchange=()=>{revealed=false;played=false;step=1;setTimeout(saveDrill,0);const b=$('#dMode').value==='build';$('#bStep').hidden=!b;if(b&&$('#dLen').value==='all'){$('#dLen').value='L';buildPool()}else render()};
@@ -671,7 +681,7 @@ $('#selSym').addEventListener('keydown',e=>{if(e.key==='Enter')$('#selSave').cli
 $('#selZh').addEventListener('keydown',e=>{if(e.key==='Enter')$('#selSave').click();if(e.key==='Escape')selClose();e.stopPropagation()});
 renderNB();
 $('#fxEdit').onclick=()=>{fxEd=!fxEd;renderFX()};renderFX();
-(function(){const d=loadDrill();if(!d){buildPool();return}const set=(sel,v)=>{if(v!=null&&[...$(sel).options].some(o=>o.value===v))$(sel).value=v};set('#dMode',d.mode);set('#dChap',d.chap);fillSk();set('#dSk',d.sk);set('#dLen',d.len);set('#dScope',d.scope);set('#dOrder',d.order);if(d.rate){$('#dRate').value=d.rate;$('#rateVal').textContent=(+d.rate).toFixed(2)+'×'}$('#bStep').hidden=$('#dMode').value!=='build';buildPool(d.cur,d.ord);if(d.step&&$('#dMode').value==='build'&&pool[idx]){step=Math.min(d.step,segsOf(pool[idx]).length);render()}})();
+(function(){const d=loadDrill();if(!d){buildPool();return}const set=(sel,v)=>{if(v!=null&&[...$(sel).options].some(o=>o.value===v))$(sel).value=v};set('#dMode',d.mode);set('#dChap',d.chap);fillSk();set('#dSk',d.sk);set('#dLen',d.len);set('#dScope',d.scope);set('#dOrder',d.order);if(d.num)$('#dNum').value=d.num;if(d.rate){$('#dRate').value=d.rate;$('#rateVal').textContent=(+d.rate).toFixed(2)+'×'}$('#bStep').hidden=$('#dMode').value!=='build';buildPool(d.cur,d.ord);if(d.step&&$('#dMode').value==='build'&&pool[idx]){step=Math.min(d.step,segsOf(pool[idx]).length);render()}})();
 initSync();
 </script>
 
@@ -724,7 +734,7 @@ function sync(manual){if(!tok()){if(manual)stat('请先填入令牌');return Pro
 Storage.prototype.setItem=function(k,v){raw.call(this,k,v);if(!applying&&this===localStorage&&(k===KS.srs||k===KS.nb||k===KS.custom)&&tok()){clearTimeout(timer);timer=setTimeout(sync,4000)}};
 window.icaoCloud=sync;
 var bar=document.getElementById('nbCount');if(bar&&bar.parentNode){var b=document.createElement('button');b.id='csBtn';b.textContent='云同步';bar.parentNode.insertBefore(b,bar);
- var pn=document.createElement('div');pn.id='csPanel';pn.hidden=true;pn.innerHTML='<b>三端云同步（电脑 · 手机 · iPad）</b><ol><li>在 GitHub 生成一个只有 gist 权限的令牌：<a href="https://github.com/settings/tokens/new?scopes=gist&description=ICAO900%20sync" target="_blank" rel="noopener">点这里</a>，Expiration 选 No expiration，点 Generate token，复制 ghp_ 开头的那串。</li><li>粘贴到下面，点"保存并同步"。三台设备各做一次，用同一个令牌。</li></ol><input id="csTok" type="password" autocomplete="off" placeholder="ghp_…" aria-label="GitHub 令牌"><div class="row2"><button id="csSave">保存并同步</button><button id="csNow">立即同步</button><button id="csOff">在这台设备停用</button></div><div id="csStat"></div><div class="row2" style="margin-top:8px"><button id="csCopy">复制令牌（给另一台设备用）</button><button id="csUpd">检查更新</button></div><div class="note" id="csVer" style="margin-top:4px">当前版本 10-31 11:52</div><p class="note" style="margin:6px 0 0">记录存在你 GitHub 账号下的一个私密 gist 里。改动后几秒自动上传，每次打开或切回 App 时自动拉取。离线时照常记录，联网后自动合并。</p>';
+ var pn=document.createElement('div');pn.id='csPanel';pn.hidden=true;pn.innerHTML='<b>三端云同步（电脑 · 手机 · iPad）</b><ol><li>在 GitHub 生成一个只有 gist 权限的令牌：<a href="https://github.com/settings/tokens/new?scopes=gist&description=ICAO900%20sync" target="_blank" rel="noopener">点这里</a>，Expiration 选 No expiration，点 Generate token，复制 ghp_ 开头的那串。</li><li>粘贴到下面，点"保存并同步"。三台设备各做一次，用同一个令牌。</li></ol><input id="csTok" type="password" autocomplete="off" placeholder="ghp_…" aria-label="GitHub 令牌"><div class="row2"><button id="csSave">保存并同步</button><button id="csNow">立即同步</button><button id="csOff">在这台设备停用</button></div><div id="csStat"></div><div class="row2" style="margin-top:8px"><button id="csCopy">复制令牌（给另一台设备用）</button><button id="csUpd">检查更新</button></div><div class="note" id="csVer" style="margin-top:4px">当前版本 10-31 12:45</div><p class="note" style="margin:6px 0 0">记录存在你 GitHub 账号下的一个私密 gist 里。改动后几秒自动上传，每次打开或切回 App 时自动拉取。离线时照常记录，联网后自动合并。</p>';
  bar.parentNode.parentNode.insertBefore(pn,bar.parentNode.nextSibling);
  b.onclick=function(){pn.hidden=!pn.hidden};
  document.getElementById('csSave').onclick=function(){var v=document.getElementById('csTok').value.trim();if(!v){stat('请先粘贴令牌');return}raw.call(localStorage,TK,v);document.getElementById('csTok').value='';sync(true)};
