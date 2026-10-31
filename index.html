@@ -294,7 +294,7 @@ html{scroll-behavior:smooth}
 
 <section id="fixed">
   <div class="sec-head"><h2>固定说法</h2><p>全部900句里反复出现的固定结构，不分章节，开头、句中、句尾都算，例如 We are no longer…、There was…、Can you…?、to perform the checklist。默认写法是每个词首字母的小写，用来和大写的内容符号区分。Request、Confirm、Unable、due to 这些已经是核心符号（REQ、CFM、UNA、∵），这里不重复列。</p></div>
-  <div class="toolbar"><button id="fxEdit">编辑</button><span class="note">改动会应用到每句"只写"开头的符号，并同步到账号。清空即恢复默认。</span></div>
+  <div class="toolbar"><button id="fxEdit">编辑</button><span class="note">可以新增自己的固定说法、改速记。改动会应用到每句的"只写"和完整速记，并跟单词本一起同步。</span></div>
   <div id="fxBody"></div>
 </section>
 
@@ -395,7 +395,7 @@ function rowHTML(s){return '<div class="row" data-src="'+lab(s)+'"><div class="n
 $('#stats').innerHTML=[['900','句，全部归入骨架卡'],[String(CARDS.length),'张骨架卡（8章）'],['20','句考试抽题，每句只放一遍'],['90%','一句的准确率达到这个才算对']].map(x=>'<div><b>'+x[0]+'</b><span>'+x[1]+'</span></div>').join('');
 // chapters
 function varsHTML(ci){return '<div class="vbox" data-vc="'+ci+'">'+varsInner(ci)+'</div>'}
-const CKEY='icao900.custom.v1';let cus={o:{},a:{},op:{}};try{const x=JSON.parse(localStorage.getItem(CKEY)||'null');if(x&&x.o&&x.a){cus=x;if(!cus.op)cus.op={}}}catch(e){}
+const CKEY='icao900.custom.v1';let cus={o:{},a:{},op:{}};try{const x=JSON.parse(localStorage.getItem(CKEY)||'null');if(x&&x.o&&x.a){cus=x;if(!cus.op)cus.op={};if(!cus.fx)cus.fx={}}}catch(e){}if(!cus.fx)cus.fx={};
 const opSym=k=>{if(!k)return '';const o=cus.op[k];return o&&!o.del&&o.s?o.s:(OPSYM[k]||'')};
 const OPKEY='icao900.opprefix';let opOn=true;try{opOn=localStorage.getItem(OPKEY)!=='0'}catch(e){}
 function exText(s){let segs=s.ex?s.ex.split(' | '):[''];const op=s.op||[];if(opOn&&op.length){while(segs.length<op.length)segs.push('');segs=segs.map((g,i)=>{const p=opSym(op[i]);const body=(g==='—'?'':g);return (p?p+(body?' ':''):'')+body||'—'})}const r=segs.join(' | ');return /^[—| ]*$/.test(r)?'':applyCus(r)}
@@ -431,9 +431,19 @@ document.addEventListener('change',e=>{const i=e.target;if(i.dataset&&i.dataset.
  if(i.dataset.s0){const s0=i.dataset.s0;const o=Object.assign({s:'',z:''},cus.o[s0]&&!cus.o[s0].del?cus.o[s0]:{});o[i.dataset.f]=i.value.trim();o.t=Date.now();o.del=!o.s&&!o.z;cus.o[s0]=o;cusSave();refreshVbox(ci)}
  else if(i.dataset.aid){const v=cus.a[i.dataset.aid];if(!v)return;v[i.dataset.f]=i.value.trim();v.t=Date.now();cusSave();refreshVbox(ci)}});
 const FXCAT={we:'We …',i:'I …',there:'There …',it:'It …',other:'他人',q:'问句',neg:'否定',state:'状态',purpose:'目的',fixed:'固定搭配'};let fxEd=false;
-function renderFX(){const rows=FIXED;const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
- if(!fxEd){$('#fxBody').innerHTML='<div class="vgrid fxgrid">'+rows.map(([k,s,n,c])=>'<div class="vi op'+(cus.op[k]&&!cus.op[k].del?' changed':'')+'"><b>'+esc(opSym(k)||s)+'</b><span>'+esc(cap(k))+' <em>'+FXCAT[c]+'</em></span><i>'+n+'</i></div>').join('')+'</div>';$('#fxEdit').textContent='编辑';return}
- $('#fxBody').innerHTML='<div class="tbl"><table class="vedt fxedt"><thead><tr><th>速记</th><th>固定说法</th><th>类别</th><th>句数</th></tr></thead><tbody>'+rows.map(([k,s,n,c])=>'<tr><td><input data-fxk="'+esc(k)+'" value="'+esc(cus.op[k]&&!cus.op[k].del?cus.op[k].s:'')+'" placeholder="'+esc(s)+'"></td><td>'+esc(cap(k))+'</td><td>'+FXCAT[c]+'</td><td class="n">'+n+'</td></tr>').join('')+'</tbody></table></div>';$('#fxEdit').textContent='完成编辑'}
+function fxRows(){const r=FIXED.map(([k,s,n,c])=>({b:1,k:k,s:s,n:n,c:c}));for(const id in (cus.fx||{})){const v=cus.fx[id];if(v.del||!v.k)continue;r.unshift({b:0,id:id,k:v.k.toLowerCase(),s:v.s||'',n:cntEn(v.k).length,c:v.c||'fixed'})}return r}
+function renderFX(){const rows=fxRows();const cap=x=>x.charAt(0).toUpperCase()+x.slice(1);
+ if(!fxEd){$('#fxBody').innerHTML='<div class="vgrid fxgrid">'+rows.map(r=>'<div class="vi op'+(r.b?(cus.op[r.k]&&!cus.op[r.k].del?' changed':''):' mine')+'"><b>'+esc(r.b?(opSym(r.k)||r.s):(r.s||'—'))+'</b><span>'+esc(cap(r.k))+' <em>'+(FXCAT[r.c]||'')+(r.b?'':' · 自建')+'</em></span><i>'+r.n+'</i></div>').join('')+'</div>';$('#fxEdit').textContent='编辑';return}
+ const sel=(v,attr)=>'<select '+attr+'>'+Object.entries(FXCAT).map(([k,l])=>'<option value="'+k+'"'+(k===v?' selected':'')+'>'+esc(l)+'</option>').join('')+'</select>';
+ let h='<p class="note">第一行新增：填固定说法和速记，选类别，点"新增"。自建的可以改说法、改速记、删除；内置的改速记，清空即恢复默认。</p><div class="tbl"><table class="vedt fxedt"><thead><tr><th>速记</th><th>固定说法</th><th>类别</th><th>句数</th><th></th></tr></thead><tbody>';
+ h+='<tr class="newrow"><td><input id="fxNewS" placeholder="速记，如 tw" aria-label="新说法速记"></td><td><input id="fxNewK" placeholder="固定说法，如 there was" aria-label="新固定说法"></td><td>'+sel('fixed','id="fxNewC" aria-label="类别"')+'</td><td></td><td><button id="fxAdd">新增</button></td></tr>';
+ h+=rows.map(r=>r.b?'<tr><td><input data-fxk="'+esc(r.k)+'" value="'+esc(cus.op[r.k]&&!cus.op[r.k].del?cus.op[r.k].s:'')+'" placeholder="'+esc(r.s)+'"></td><td>'+esc(cap(r.k))+'</td><td>'+(FXCAT[r.c]||'')+'</td><td class="n">'+r.n+'</td><td></td></tr>'
+  :'<tr><td><input data-fxid="'+r.id+'" data-f="s" value="'+esc(r.s)+'"></td><td><input data-fxid="'+r.id+'" data-f="k" value="'+esc(r.k)+'"></td><td>'+sel(r.c,'data-fxid="'+r.id+'" data-f="c"')+'</td><td class="n">'+r.n+'</td><td><span class="tag">自建</span> <button data-fxdel="'+r.id+'">删除</button></td></tr>').join('');
+ $('#fxBody').innerHTML=h+'</tbody></table></div>';$('#fxEdit').textContent='完成编辑'}
+$('#fxBody').addEventListener('click',e=>{if(e.target.id==='fxAdd'){const k=$('#fxNewK').value.trim().replace(/\s+/g,' '),s=$('#fxNewS').value.trim(),c=$('#fxNewC').value;if(!k){toast('先填固定说法');return}if(!cus.fx)cus.fx={};const kl=k.toLowerCase();if(FIXED.some(x=>x[0]===kl)||Object.values(cus.fx).some(v=>!v.del&&v.k&&v.k.toLowerCase()===kl)){toast('已经有这个说法了，直接改它的速记即可');return}const id='f'+Date.now();cus.fx[id]={k:k,s:s,c:c,t:Date.now()};cusSave();toast('已新增：'+k+'（'+cntEn(k).length+' 句）');return}
+ const d=e.target.closest('[data-fxdel]');if(d){const v=cus.fx[d.dataset.fxdel];if(v){cus.fx[d.dataset.fxdel]=Object.assign({},v,{del:true,t:Date.now()});cusSave()}}});
+$('#fxBody').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.target.id==='fxNewK'||e.target.id==='fxNewS')){e.preventDefault();$('#fxAdd').click()}});
+$('#fxBody').addEventListener('change',e=>{const i=e.target;if(!(i.dataset&&i.dataset.fxk))e.stopPropagation();if(!i.dataset||!i.dataset.fxid)return;const v=cus.fx[i.dataset.fxid];if(!v)return;const val=i.value.trim();if(i.dataset.f==='k'&&!val){toast('说法不能为空，要删除请点删除');renderFX();return}cus.fx[i.dataset.fxid]=Object.assign({},v,{[i.dataset.f]:val,t:Date.now()});cusSave()});
 // ---- full symbol line (every part that has a symbol), built live so edits apply
 const NW={one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,ten:10,eleven:11,twelve:12};
 const NUMC=[
@@ -460,6 +470,7 @@ const NUMC=[
 let PHC=null;
 function buildPhrases(){const L=[];const add=(ph,fn,pri)=>{const src=ph.replace(/s\?/g,'(?:s)?').replace(/\s+/g,'[\\s-]+');L.push({len:ph.replace(/[?()]/g,'').length,pri:pri,re:new RegExp('(?:'+src+')(?![A-Za-z])','iy'),fn:fn})};
  FIXED.forEach(([k,s])=>add(k.replace(/[.*+^${}()|[\]\\]/g,'\\$&').replace(/\\\?/g,'?'),()=>opSym(k)||s,2));
+ for(const id in (cus.fx||{})){const v=cus.fx[id];if(!v.del&&v.k&&v.s){const kk=v.k.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g,'\\$&');add(kk,()=>v.s,3)}}
  for(const id in cus.a){const v=cus.a[id];if(!v.del&&v.e&&v.s)add(v.e.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),()=>v.s,3)}
  DICT.forEach(([al,sym])=>al.forEach(a=>add(a,()=>curSym(sym),1)));
  L.sort((a,b)=>b.len-a.len||b.pri-a.pri);PHC=L}
@@ -528,7 +539,7 @@ async function initSync(){syncMsg('local');try{const C=window.claude;if(!C||!C.u
  snaps.forEach((sn,i)=>{const cm=(sn.exists&&sn.data()&&sn.data().m)||{};for(const k in cm){const a=marks[k],b=cm[k];if(!a||(b.t||0)>(a.t||0))marks[k]=b}for(const k in marks){if(k.split('-')[0]===String(i)){const b=cm[k];if(!b||(marks[k].t||0)>(b.t||0))push.add(i)}}});
  try{localStorage.setItem(KEY,JSON.stringify(marks))}catch(e){}dbh=db;push.forEach(i=>dirty.add(i));if(dirty.size)flush();else syncMsg('ok');render();
  try{const ns=await db.doc('data/users/'+u+'/notebook').get();const cn=(ns.exists&&ns.data()&&ns.data().items)||{};let up=false;for(const k in cn){if(!nb[k]||(cn[k].t||0)>(nb[k].t||0))nb[k]=cn[k]}for(const k in nb){if(!cn[k]||(nb[k].t||0)>(cn[k].t||0))up=true}try{localStorage.setItem(NBKEY,JSON.stringify(nb))}catch(e){}renderNB();if(up)nbFlush()}catch(e){}
- try{const cs=await db.doc('data/users/'+u+'/custom').get();const cc=(cs.exists&&cs.data())||{};let up2=false;if(!cus.op)cus.op={};for(const part of ['o','a','op']){const remote=cc[part]||{};const local=cus[part];for(const k in remote){if(!local[k]||(remote[k].t||0)>(local[k].t||0))local[k]=remote[k]}for(const k in local){if(!remote[k]||(local[k].t||0)>(remote[k].t||0))up2=true}}try{localStorage.setItem(CKEY,JSON.stringify(cus))}catch(e){}refreshAll();if(up2)cusFlush()}catch(e){}}catch(e){dbh=null;syncMsg('local')}}
+ try{const cs=await db.doc('data/users/'+u+'/custom').get();const cc=(cs.exists&&cs.data())||{};let up2=false;if(!cus.op)cus.op={};if(!cus.fx)cus.fx={};for(const part of ['o','a','op','fx']){const remote=cc[part]||{};const local=cus[part];for(const k in remote){if(!local[k]||(remote[k].t||0)>(local[k].t||0))local[k]=remote[k]}for(const k in local){if(!remote[k]||(local[k].t||0)>(remote[k].t||0))up2=true}}try{localStorage.setItem(CKEY,JSON.stringify(cus))}catch(e){}refreshAll();if(up2)cusFlush()}catch(e){}}catch(e){dbh=null;syncMsg('local')}}
 const id=s=>s.c+'-'+s.l;
 $('#dChap').innerHTML='<option value="all">全部 900 句</option>'+CH.map((c,i)=>'<option value="'+i+'">第'+CN[i]+'章 '+c+'</option>').join('');
 function fillSk(){const c=$('#dChap').value;$('#dSk').innerHTML='<option value="all">全部</option>'+CARDS.filter(k=>c==='all'||k.c==+c).map(k=>'<option value="'+k.id+'">'+k.id+' '+k.zh+'</option>').join('')}
@@ -687,8 +698,8 @@ function tok(){try{return localStorage.getItem(TK)||''}catch(e){return ''}}
 function stat(m){var el=document.getElementById('csStat');if(el)el.textContent=m;var b=document.getElementById('csBtn');if(b){var short=!tok()?'未开启':/^已同步 (\d\d:\d\d)/.test(m)?'✓ '+RegExp.$1:/连不上/.test(m)?'✗ 连不上':/失败/.test(m)?'✗ 失败':/离线/.test(m)?'离线':/正在/.test(m)?'…':'✓';b.textContent='云同步 · '+short}}
 function local(){return {srs:g(KS.srs)||{},nb:g(KS.nb)||{},custom:g(KS.custom)||{o:{},a:{},op:{}}}}
 function mergeMap(dst,src){var ch=0;for(var k in src){var a=dst[k],b=src[k];if(!a||((b&&b.t)||0)>((a&&a.t)||0)){dst[k]=b;ch++}}return ch}
-function merge(L,R){var out={srs:Object.assign({},L.srs),nb:Object.assign({},L.nb),custom:{o:Object.assign({},L.custom.o||{}),a:Object.assign({},L.custom.a||{}),op:Object.assign({},L.custom.op||{})}};
- var inL=mergeMap(out.srs,R.srs||{})+mergeMap(out.nb,R.nb||{});var rc=R.custom||{};['o','a','op'].forEach(function(p){inL+=mergeMap(out.custom[p],rc[p]||{})});return [out,inL]}
+function merge(L,R){var out={srs:Object.assign({},L.srs),nb:Object.assign({},L.nb),custom:{o:Object.assign({},L.custom.o||{}),a:Object.assign({},L.custom.a||{}),op:Object.assign({},L.custom.op||{}),fx:Object.assign({},L.custom.fx||{})}};
+ var inL=mergeMap(out.srs,R.srs||{})+mergeMap(out.nb,R.nb||{});var rc=R.custom||{};['o','a','op','fx'].forEach(function(p){out.custom[p]=out.custom[p]||{};inL+=mergeMap(out.custom[p],rc[p]||{})});return [out,inL]}
 function same(a,b){return JSON.stringify(a)===JSON.stringify(b)}
 function H(){return {'Authorization':'Bearer '+tok(),'Accept':'application/vnd.github+json'}}
 function api(path,opt){opt=opt||{};opt.headers=Object.assign(H(),opt.headers||{});opt.cache='no-store';var ac=window.AbortController?new AbortController():null;if(ac){opt.signal=ac.signal;setTimeout(function(){ac.abort()},15000)}return fetch(API+path,opt).then(function(r){if(r.status===401)throw new Error('令牌无效或已过期');if(r.status===404)throw new Error('404');if(!r.ok)throw new Error('GitHub 返回 '+r.status);return r.status===204?null:r.json()})}
@@ -697,7 +708,7 @@ function findGist(){var id=localStorage.getItem(GK);if(id)return Promise.resolve
   return api('/gists',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({description:DESC,public:false,files:{'icao900.json':{content:JSON.stringify(local())}}})}).then(function(n){raw.call(localStorage,GK,n.id);return n.id})})}
 function readGist(id){return api('/gists/'+id).then(function(j){var f=j.files&&j.files[FN];if(!f)return {};if(f.truncated)return fetch(f.raw_url,{cache:'no-store'}).then(function(r){return r.json()});try{return JSON.parse(f.content||'{}')}catch(e){return {}}})}
 function applyLocal(m){applying=true;try{raw.call(localStorage,KS.srs,JSON.stringify(m.srs));raw.call(localStorage,KS.nb,JSON.stringify(m.nb));raw.call(localStorage,KS.custom,JSON.stringify(m.custom))}finally{applying=false}
- try{marks=m.srs;nb=m.nb;cus=m.custom;if(!cus.op)cus.op={};if(typeof NBREC!=='undefined')NBREC=null;if(typeof PHC!=='undefined')PHC=null;if(typeof refreshAll==='function')refreshAll()}catch(e){setTimeout(function(){location.reload()},300)}}
+ try{marks=m.srs;nb=m.nb;cus=m.custom;if(!cus.op)cus.op={};if(!cus.fx)cus.fx={};if(typeof NBREC!=='undefined')NBREC=null;if(typeof PHC!=='undefined')PHC=null;if(typeof refreshAll==='function')refreshAll()}catch(e){setTimeout(function(){location.reload()},300)}}
 function sync(manual){if(!tok()){if(manual)stat('请先填入令牌');return Promise.resolve()}if(busy){again=true;return Promise.resolve()}busy=true;stat('正在同步…');var gid;
  return findGist().then(function(id){gid=id;return readGist(id)}).catch(function(e){if(e.message==='404'){localStorage.removeItem(GK);return findGist().then(function(id){gid=id;return readGist(id)})}throw e}).then(function(R){var L=local();var r=merge(L,R),M=r[0];
   if(!same(M,L))applyLocal(M);var p=same(M,{srs:R.srs||{},nb:R.nb||{},custom:R.custom||{}})?null:api('/gists/'+gid,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({files:{'icao900.json':{content:JSON.stringify(M)}}})});
@@ -706,7 +717,7 @@ function sync(manual){if(!tok()){if(manual)stat('请先填入令牌');return Pro
 Storage.prototype.setItem=function(k,v){raw.call(this,k,v);if(!applying&&this===localStorage&&(k===KS.srs||k===KS.nb||k===KS.custom)&&tok()){clearTimeout(timer);timer=setTimeout(sync,4000)}};
 window.icaoCloud=sync;
 var bar=document.getElementById('nbCount');if(bar&&bar.parentNode){var b=document.createElement('button');b.id='csBtn';b.textContent='云同步';bar.parentNode.insertBefore(b,bar);
- var pn=document.createElement('div');pn.id='csPanel';pn.hidden=true;pn.innerHTML='<b>三端云同步（电脑 · 手机 · iPad）</b><ol><li>在 GitHub 生成一个只有 gist 权限的令牌：<a href="https://github.com/settings/tokens/new?scopes=gist&description=ICAO900%20sync" target="_blank" rel="noopener">点这里</a>，Expiration 选 No expiration，点 Generate token，复制 ghp_ 开头的那串。</li><li>粘贴到下面，点"保存并同步"。三台设备各做一次，用同一个令牌。</li></ol><input id="csTok" type="password" autocomplete="off" placeholder="ghp_…" aria-label="GitHub 令牌"><div class="row2"><button id="csSave">保存并同步</button><button id="csNow">立即同步</button><button id="csOff">在这台设备停用</button></div><div id="csStat"></div><div class="row2" style="margin-top:8px"><button id="csCopy">复制令牌（给另一台设备用）</button><button id="csUpd">检查更新</button></div><div class="note" id="csVer" style="margin-top:4px">当前版本 10-31 10:38</div><p class="note" style="margin:6px 0 0">记录存在你 GitHub 账号下的一个私密 gist 里。改动后几秒自动上传，每次打开或切回 App 时自动拉取。离线时照常记录，联网后自动合并。</p>';
+ var pn=document.createElement('div');pn.id='csPanel';pn.hidden=true;pn.innerHTML='<b>三端云同步（电脑 · 手机 · iPad）</b><ol><li>在 GitHub 生成一个只有 gist 权限的令牌：<a href="https://github.com/settings/tokens/new?scopes=gist&description=ICAO900%20sync" target="_blank" rel="noopener">点这里</a>，Expiration 选 No expiration，点 Generate token，复制 ghp_ 开头的那串。</li><li>粘贴到下面，点"保存并同步"。三台设备各做一次，用同一个令牌。</li></ol><input id="csTok" type="password" autocomplete="off" placeholder="ghp_…" aria-label="GitHub 令牌"><div class="row2"><button id="csSave">保存并同步</button><button id="csNow">立即同步</button><button id="csOff">在这台设备停用</button></div><div id="csStat"></div><div class="row2" style="margin-top:8px"><button id="csCopy">复制令牌（给另一台设备用）</button><button id="csUpd">检查更新</button></div><div class="note" id="csVer" style="margin-top:4px">当前版本 10-31 11:40</div><p class="note" style="margin:6px 0 0">记录存在你 GitHub 账号下的一个私密 gist 里。改动后几秒自动上传，每次打开或切回 App 时自动拉取。离线时照常记录，联网后自动合并。</p>';
  bar.parentNode.parentNode.insertBefore(pn,bar.parentNode.nextSibling);
  b.onclick=function(){pn.hidden=!pn.hidden};
  document.getElementById('csSave').onclick=function(){var v=document.getElementById('csTok').value.trim();if(!v){stat('请先粘贴令牌');return}raw.call(localStorage,TK,v);document.getElementById('csTok').value='';sync(true)};
