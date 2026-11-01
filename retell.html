@@ -90,6 +90,10 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .it.due{outline:2px solid var(--accent);outline-offset:1px}
 .model{background:var(--soft);padding:12px 14px;border-radius:8px;line-height:1.8}
 .model b.fr{color:var(--accent);font-weight:600}
+.audbox{margin-top:12px;display:grid;gap:8px}
+.audbox audio{width:100%}
+.audnone{margin-top:10px}
+.filebtn{font:600 14px var(--sans);padding:9px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);cursor:pointer}
 .tpl li.warn{list-style:none;margin-left:-18px;color:var(--muted);font-size:13px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -215,8 +219,17 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
       </div>
       <div class="row" style="margin-top:10px">
         <span class="timer" id="timer">5:00</span>
-        <span class="mute" id="phase">在你的 App 里放两遍录音，放完再点开始，按考场的 300 秒练</span>
+        <span class="mute" id="phase">点「考场播放」：录音放两遍、中间隔 10 秒，放完自动开始 300 秒</span>
       </div>
+      <div class="audbox" id="audbox">
+        <div class="row">
+          <button class="pri" id="btnExam">▶ 考场播放（两遍，间隔 10 秒）</button>
+          <label class="mute" for="arate">语速</label>
+          <select id="arate"><option value="0.8">0.8×</option><option value="0.9">0.9×</option><option value="1" selected>1.0×（考场）</option><option value="1.1">1.1×</option></select>
+        </div>
+        <audio id="aud" controls preload="none"></audio>
+      </div>
+      <div class="audnone mute" id="audnone">这篇还没有录音。先在下面「录音」里导入题库文件。</div>
       <div class="controls">
         <button class="pri" id="btnPlay">开始 300 秒</button>
         <button id="btnStop">暂停</button>
@@ -227,6 +240,24 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
       </div>
       <div class="mute" id="srs" style="margin-top:8px"></div>
     </section>
+
+    <details class="card rules" id="audcard">
+      <summary>录音：导入题库文件 / 下载到本机离线听</summary>
+      <div class="mstep">
+        <p>录音来自飞行之翼的课程，只保存在你这台设备上，不会放进公开的网站代码里。</p>
+        <ol>
+          <li>点「导入题库文件」，选你导出的 <b>ICAO_Part4…md</b>。页面会按原文自动把 83 条录音对到题号上。</li>
+          <li>联网时点「下载全部录音到本机」，下完以后在飞机上没网也能听。</li>
+        </ol>
+        <div class="row">
+          <label class="filebtn" for="audfile">导入题库文件</label>
+          <input type="file" id="audfile" accept=".md,.txt,text/markdown,text/plain" hidden>
+          <button id="audDl">下载全部录音到本机</button>
+          <button id="audClear">清除录音</button>
+        </div>
+        <p class="mute" id="audstat"></p>
+      </div>
+    </details>
 
     <section class="card">
       <h2>草稿纸：第一遍记骨架（谁 / 阶段 / 出了什么事 / 结果或原因），第二遍补数字和动作</h2>
@@ -514,7 +545,7 @@ function phaseText(){const used=TOTAL-left;
   return "还没说完就收尾：补一句结果或调查原因（原文有才说），然后结束录音";}
 function tick(){$("timer").textContent=fmt(Math.max(left,0));$("timer").classList.toggle("warn",left<=60);$("phase").textContent=phaseText()}
 function resetTimer(){clearInterval(tT);running=false;left=TOTAL;$("timer").textContent=fmt(TOTAL);$("timer").classList.remove("warn");
-  $("phase").textContent="在你的 App 里放两遍录音，放完再点开始，按考场的 300 秒练";$("btnPlay").textContent="开始 300 秒";$("btnStop").textContent="暂停"}
+  $("phase").textContent="点「考场播放」：录音放两遍、中间隔 10 秒，放完自动开始 300 秒";$("btnPlay").textContent="开始 300 秒";$("btnStop").textContent="暂停"}
 function start(){clearInterval(tT);running=true;$("btnPlay").textContent="重新开始";$("btnStop").textContent="暂停";tick();
   tT=setInterval(()=>{left--;tick();if(left<=0){clearInterval(tT);running=false}},1000)}
 function stop(){clearInterval(tT);running=false}
@@ -532,6 +563,49 @@ $("dNew").onclick=dNew;$("dShow").onclick=()=>{$("da").hidden=false};
 $("dGo").onclick=()=>{go(dI);window.scrollTo({top:0,behavior:"smooth"})};
 dNew();
 try{if(localStorage.getItem("icao_rules_seen"))$("rules").open=false;else{$("rules").open=true;localStorage.setItem("icao_rules_seen","1")}}catch(e){$("rules").open=true}
+
+/* ---- 录音 ---- */
+const AKEY='retell.audio.v1', ACACHE='retell-audio-v1';
+let AUD={};try{AUD=JSON.parse(localStorage.getItem(AKEY)||'{}')}catch(e){}
+const words=t=>new Set(t.toLowerCase().replace(/[^a-z0-9]+/g,' ').split(' ').filter(Boolean));
+function sim(a,b){let n=0;a.forEach(w=>{if(b.has(w))n++});return n/(a.size+b.size-n||1)}
+function parseMd(md){const out=[];const parts=md.split(/🎧\s*音频[:：]\s*/).slice(1);
+  for(const p of parts){const m=p.match(/^<?(https?:\/\/[^\s>]+\.mp3)>?/i);if(!m)continue;
+    const q=p.match(/原文[^\n]*\n+\s*>\s*([^\n]+)/);if(q)out.push({url:m[1],w:words(q[1])})}
+  return out}
+function matchAll(entries){const map={};
+  for(const s of S){const w=words(TXT(s));let best=null,bs=0;for(const e of entries){const v=sim(w,e.w);if(v>bs){bs=v;best=e}}
+    if(best&&bs>0.5)map[s[0]]=best.url}
+  return map}
+async function cached(url){try{const c=await caches.open(ACACHE);const r=await c.match(url);return r?URL.createObjectURL(await r.blob()):null}catch(e){return null}}
+let examState=0,examT=null;
+function stopExam(){examState=0;clearTimeout(examT);clearInterval(examT);const a=$("aud");try{a.pause()}catch(e){}}
+async function loadAudio(){stopExam();const id=S[cur][0];const url=AUD[id];const a=$("aud");
+  $("audbox").hidden=!url;$("audnone").hidden=!!url;if(!url){a.removeAttribute('src');return}
+  const local=await cached(url);if(S[cur][0]!==id)return;a.src=local||url;a.playbackRate=+$("arate").value}
+function audStat(){const n=Object.keys(AUD).length;
+  caches.open(ACACHE).then(c=>c.keys()).then(k=>{$("audstat").textContent=n?`已对上 ${n} / 83 题的录音，其中 ${k.length} 条已下载到本机。`:"还没有导入录音。"}).catch(()=>{$("audstat").textContent=n?`已对上 ${n} / 83 题的录音。`:"还没有导入录音。"})}
+$("audfile").onchange=async e=>{const f=e.target.files[0];if(!f)return;
+  const entries=parseMd(await f.text());if(!entries.length){$("audstat").textContent="这个文件里没找到录音链接，请确认选的是导出的题库 md 文件。";return}
+  AUD=matchAll(entries);try{localStorage.setItem(AKEY,JSON.stringify(AUD))}catch(e){}
+  audStat();loadAudio();e.target.value=""};
+$("audDl").onclick=async()=>{const urls=[...new Set(Object.values(AUD))];if(!urls.length){$("audstat").textContent="请先导入题库文件。";return}
+  let ok=0,fail=0;const c=await caches.open(ACACHE);
+  for(const u of urls){if(await c.match(u)){ok++;continue}
+    try{const r=await fetch(u,{mode:'cors'});if(!r.ok)throw 0;await c.put(u,new Response(await r.blob(),{headers:{'Content-Type':'audio/mpeg'}}));ok++}catch(e){fail++}
+    $("audstat").textContent=`正在下载… ${ok+fail} / ${urls.length}`}
+  $("audstat").textContent=fail?`下载完成 ${ok} 条，${fail} 条失败。失败的可能是网络问题，可以再点一次；如果一直失败，说明录音服务器不允许离线保存，这几条只能联网播放。`:`全部 ${ok} 条录音已下载到本机，没网也能听。`;loadAudio()};
+$("audClear").onclick=async()=>{AUD={};try{localStorage.removeItem(AKEY)}catch(e){}try{await caches.delete(ACACHE)}catch(e){}audStat();loadAudio()};
+$("arate").onchange=()=>{$("aud").playbackRate=+$("arate").value};
+$("btnExam").onclick=()=>{const a=$("aud");if(!a.src)return;stopExam();resetTimer();examState=1;a.currentTime=0;a.playbackRate=+$("arate").value;
+  $("phase").textContent="第一遍：只抓谁、哪个阶段、出了什么事、结果";a.play().catch(()=>{$("phase").textContent="播放失败：没网又没下载到本机时听不了"})};
+$("aud").addEventListener('ended',()=>{const a=$("aud");
+  if(examState===1){examState=2;let n=10;$("phase").textContent=`间隔 ${n} 秒，准备第二遍`;
+    examT=setInterval(()=>{n--;if(n>0){$("phase").textContent=`间隔 ${n} 秒，准备第二遍`;return}clearInterval(examT);
+      $("phase").textContent="第二遍：补数字、跑道号和处置动作";a.currentTime=0;a.play()},1000)}
+  else if(examState===2){examState=0;left=TOTAL;start()}});
+const _go=go;go=function(i){_go(i);loadAudio()};
+audStat();
 go(0);
 </script>
 <script>if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(function(){})}</script></body></html>
