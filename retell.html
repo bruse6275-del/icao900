@@ -223,7 +223,7 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
       </div>
       <div class="audbox" id="audbox">
         <div class="row">
-          <button class="pri" id="btnExam">▶ 考场播放（两遍，间隔 10 秒）</button>
+          <button class="pri" id="btnExam">▶ 考场播放（两遍 + 300 秒同步计时）</button>
           <label class="mute" for="arate">语速</label>
           <select id="arate"><option value="0.8">0.8×</option><option value="0.9">0.9×</option><option value="1" selected>1.0×（考场）</option><option value="1.1">1.1×</option></select>
         </div>
@@ -536,21 +536,21 @@ function go(i){
   $("srs").textContent=srsText(s[0]);
   renderList();
 }
-const TOTAL=300;let tT=null,left=TOTAL,running=false;
+const TOTAL=300;let tT=null,left=TOTAL,running=false,listenMsg="",sayFrom=TOTAL;
 const fmt=n=>`${Math.floor(n/60)}:${String(n%60).padStart(2,"0")}`;
-function phaseText(){const used=TOTAL-left;
+function phaseText(){if(listenMsg)return listenMsg;
   if(left<=0)return "时间到。考场上会自动跳到下一题。点「对照答案」检查。";
-  if(used<30)return "前 30 秒：把笔记排成 4 段骨架，想好开头第一句";
-  if(used<150)return "开始录音复述，目标说 1–2 分钟，按时间顺序讲完";
-  return "还没说完就收尾：补一句结果或调查原因（原文有才说），然后结束录音";}
+  if(sayFrom-left<30&&left>60)return "录音放完了：先用约 30 秒把笔记排成骨架，想好开头第一句";
+  if(left>60)return "开始录音复述，按时间顺序讲完";
+  return "最后 1 分钟：收尾，补一句结果或原因（原文有才说），然后结束录音";}
 function tick(){$("timer").textContent=fmt(Math.max(left,0));$("timer").classList.toggle("warn",left<=60);$("phase").textContent=phaseText()}
-function resetTimer(){clearInterval(tT);running=false;left=TOTAL;$("timer").textContent=fmt(TOTAL);$("timer").classList.remove("warn");
-  $("phase").textContent="点「考场播放」：录音放两遍、中间隔 10 秒，放完自动开始 300 秒";$("btnPlay").textContent="开始 300 秒";$("btnStop").textContent="暂停"}
-function start(){clearInterval(tT);running=true;$("btnPlay").textContent="重新开始";$("btnStop").textContent="暂停";tick();
-  tT=setInterval(()=>{left--;tick();if(left<=0){clearInterval(tT);running=false}},1000)}
+function resetTimer(){clearInterval(tT);running=false;left=TOTAL;sayFrom=TOTAL;listenMsg="";$("timer").textContent=fmt(TOTAL);$("timer").classList.remove("warn");
+  $("phase").textContent="点「考场播放」：录音和 300 秒同时开始，放两遍、中间隔 10 秒";$("btnPlay").textContent="开始 300 秒";$("btnStop").textContent="暂停"}
+function runTimer(){clearInterval(tT);running=true;tT=setInterval(()=>{left--;tick();if(left<=0){clearInterval(tT);running=false;stopExam();tick()}},1000)}
+function start(){$("btnPlay").textContent="重新开始";$("btnStop").textContent="暂停";tick();runTimer()}
 function stop(){clearInterval(tT);running=false}
-$("btnPlay").onclick=()=>{left=TOTAL;start()};
-$("btnStop").onclick=()=>{if(running){stop();$("btnStop").textContent="继续"}else if(left>0&&left<TOTAL){running=true;$("btnStop").textContent="暂停";tT=setInterval(()=>{left--;tick();if(left<=0){clearInterval(tT);running=false}},1000)}};
+$("btnPlay").onclick=()=>{stopExam();left=TOTAL;sayFrom=TOTAL;start()};
+$("btnStop").onclick=()=>{if(running){stop();pauseExam();$("btnStop").textContent="继续"}else if(left>0&&left<TOTAL){$("btnStop").textContent="暂停";resumeExam();runTimer()}};
 $("btnReveal").onclick=()=>{stop();$("answer").hidden=false;$("answer").scrollIntoView({behavior:"smooth",block:"start"})};
 $("btnOk").onclick=()=>{mark(true);$("srs").textContent="已记录：过了 · "+srsText(S[cur][0]);renderList()};
 $("btnFail").onclick=()=>{mark(false);$("srs").textContent="已记录：没过 · 明天再练";renderList()};
@@ -578,8 +578,14 @@ function matchAll(entries){const map={};
     if(best&&bs>0.5)map[s[0]]=best.url}
   return map}
 async function cached(url){try{const c=await caches.open(ACACHE);const r=await c.match(url);return r?URL.createObjectURL(await r.blob()):null}catch(e){return null}}
-let examState=0,examT=null;
-function stopExam(){examState=0;clearTimeout(examT);clearInterval(examT);const a=$("aud");try{a.pause()}catch(e){}}
+let examState=0,examT=null,gapN=0;
+function setListen(m){listenMsg=m;$("phase").textContent=m}
+function stopExam(){examState=0;listenMsg="";clearInterval(examT);try{$("aud").pause()}catch(e){}}
+function gap(){clearInterval(examT);setListen(`间隔 ${gapN} 秒，准备第二遍`);
+  examT=setInterval(()=>{gapN--;if(gapN>0){setListen(`间隔 ${gapN} 秒，准备第二遍`);return}
+    clearInterval(examT);examState=3;setListen("第二遍：补数字、跑道号和处置动作");const a=$("aud");a.currentTime=0;a.play().catch(()=>{})},1000)}
+function pauseExam(){if(!examState)return;clearInterval(examT);try{$("aud").pause()}catch(e){}}
+function resumeExam(){if(examState===2)gap();else if(examState===1||examState===3)$("aud").play().catch(()=>{})}
 async function loadAudio(){stopExam();const id=S[cur][0];const url=AUD[id];const a=$("aud");
   $("audbox").hidden=!url;$("audnone").hidden=!!url;if(!url){a.removeAttribute('src');return}
   const local=await cached(url);if(S[cur][0]!==id)return;a.src=local||url;a.playbackRate=+$("arate").value}
@@ -598,12 +604,10 @@ $("audDl").onclick=async()=>{const urls=[...new Set(Object.values(AUD))];if(!url
 $("audClear").onclick=async()=>{AUD={};try{localStorage.removeItem(AKEY)}catch(e){}try{await caches.delete(ACACHE)}catch(e){}audStat();loadAudio()};
 $("arate").onchange=()=>{$("aud").playbackRate=+$("arate").value};
 $("btnExam").onclick=()=>{const a=$("aud");if(!a.src)return;stopExam();resetTimer();examState=1;a.currentTime=0;a.playbackRate=+$("arate").value;
-  $("phase").textContent="第一遍：只抓谁、哪个阶段、出了什么事、结果";a.play().catch(()=>{$("phase").textContent="播放失败：没网又没下载到本机时听不了"})};
-$("aud").addEventListener('ended',()=>{const a=$("aud");
-  if(examState===1){examState=2;let n=10;$("phase").textContent=`间隔 ${n} 秒，准备第二遍`;
-    examT=setInterval(()=>{n--;if(n>0){$("phase").textContent=`间隔 ${n} 秒，准备第二遍`;return}clearInterval(examT);
-      $("phase").textContent="第二遍：补数字、跑道号和处置动作";a.currentTime=0;a.play()},1000)}
-  else if(examState===2){examState=0;left=TOTAL;start()}});
+  setListen("第一遍：只抓谁、哪个阶段、出了什么事、结果");start();
+  a.play().catch(()=>{stopExam();resetTimer();$("phase").textContent="播放失败：没网又没下载到本机时听不了"})};
+$("aud").addEventListener('ended',()=>{if(examState===1){examState=2;gapN=10;gap()}
+  else if(examState===3){examState=0;listenMsg="";sayFrom=left;tick()}});
 const _go=go;go=function(i){_go(i);loadAudio()};
 audStat();
 go(0);
