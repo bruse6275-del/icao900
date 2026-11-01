@@ -94,6 +94,8 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .audbox audio{width:100%}
 .audnone{margin-top:10px}
 .filebtn{font:600 14px var(--sans);padding:9px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);cursor:pointer}
+.model u.cp{text-decoration:underline;text-decoration-color:var(--ok);text-decoration-thickness:2px;text-underline-offset:3px}
+.qa{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:12px}
 .tpl li.warn{list-style:none;margin-left:-18px;color:var(--muted);font-size:13px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -223,7 +225,7 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
       </div>
       <div class="audbox" id="audbox">
         <div class="row">
-          <button class="pri" id="btnExam">▶ 考场播放（两遍 + 300 秒同步计时）</button>
+          <button class="pri" id="btnExam">▶ 考场播放（两遍，放完开始 300 秒）</button>
           <label class="mute" for="arate">语速</label>
           <select id="arate"><option value="0.8">0.8×</option><option value="0.9">0.9×</option><option value="1" selected>1.0×（考场）</option><option value="1.1">1.1×</option></select>
         </div>
@@ -281,6 +283,9 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
     <section class="card">
       <h2 id="tplTitle">本类 5 级句型</h2>
       <ul class="tpl" id="tpl"></ul>
+      <h2 id="cplTitle" style="margin-top:16px">本类通用句</h2>
+      <p class="mute" style="margin:0 0 6px">同类故事反复出现的句子。例文里用绿色下划线标出；点题号可以跳到用到这句的其他例文，对比着练最快。</p>
+      <ul class="tpl" id="cpl"></ul>
     </section>
 
     <section class="card">
@@ -427,7 +432,7 @@ const MODEL={
 31:`{{This story is about}} a landing accident with a tailwind. {{When the aircraft was}} approaching its destination, the crew of Flight 815 asked for an ILS approach to runway 12. Because of the tailwind, {{the controller suggested that}} they make a circling approach to runway 30, {{but}} the crew insisted on runway 12, so the controller cleared them to land. The runway was wet and the braking was poor. {{As a result,}} the aircraft ran off the right side of the runway and went through the airport fence. The fuselage broke into three pieces, and the right engine and right main gear came off. {{In the end,}} nobody was killed, but many passengers were seriously injured.`,
 32:`{{This story is about}} a crash caused by fuel shortage. Flight 456, a B737 with 152 passengers and 9 crew, was flying to Tokyo. {{When the aircraft was}} approaching Tokyo, it was told to hold at DA because of heavy traffic. During the hold, the weather got worse, and {{the controller suggested that}} the crew divert to the alternate, {{but}} the pilot said they didn't have enough fuel. So the controller vectored them to runway 34R. Because of wind shear, the pilot couldn't stay stable on the localizer, so they went around and made a second approach. {{As a result,}} the aircraft ran out of fuel and crashed into a hillside. {{In the end,}} it broke into pieces, and everyone on board was killed.`,
 33:`{{This story is about}} a communication problem between a crew and ATC. {{When the aircraft was}} approaching Chicago Center, {{the controller told}} SIA128 {{to}} change to 132.1 for the next sector. The first officer read back the correct frequency, {{but}} the crew never called ATC on the new frequency. {{Because}} the next controllers were preparing for a shift change, they didn't notice that Flight 128 had not made contact. {{Then,}} 30 minutes later, the next sector found SIA128 on radar, and they tried to reach it through the company dispatcher, but they got no reply. {{In the end,}} 50 minutes later, the controller regained contact with SIA128 on the emergency frequency.`,
-34:`{{This story is about}} how landing lights can give useful information to controllers. A B757 landed, vacated runway 36L via taxiway A9 and was cleared to cross runway 36R. {{While}} it {{was}} on taxiway A9 between the two runways, it stopped, and the controller got no reply from the pilot. The landing lights were also off, so the controller thought it had a radio failure. {{The controller told}} an A320 {{to}} take off from runway 36R, {{but}} suddenly he noticed that the B757's lights came on and it began to move. {{As a result,}} he realized there was a risk of runway incursion. {{In the end,}} he cancelled the A320's takeoff clearance immediately.`,
+34:`{{This story is about}} how landing lights can give useful information to controllers. A B757 landed, vacated runway 36L via taxiway A9 and was cleared to cross runway 36R. {{While}} it {{was}} on taxiway A9 between the two runways, it stopped, and the controller got no reply from the pilot. The landing lights were also off, so the controller thought it had a radio failure. {{The controller}} cleared an A320 for takeoff on runway 36R, {{but}} suddenly he noticed that the B757's lights came on and it began to move. {{As a result,}} he realized there was a risk of runway incursion. {{In the end,}} he cancelled the A320's takeoff clearance immediately.`,
 35:`{{This story is about}} a crash caused by using the wrong runway. {{The controller told}} AFR123 {{to}} take off from runway 02L at Singapore Changi, {{but}} the crew lined up on the wrong runway, 02R. {{When the aircraft was}} rolling on 02R, it ran off the end of the runway and crashed. {{As a result,}} the crew and 110 passengers were killed, and the co-pilot was seriously injured. {{The cause was that}} the crew made three mistakes. First, they didn't use good methods to check their position. Second, they forgot to check whether they were on the right runway. Finally, they were chatting during taxi, so they lost situational awareness.`,
 36:`{{This story is about}} a collision during taxi. After getting its taxi clearance, an A320 started to pass a B737 on the right side. {{While}} it {{was}} passing, the captain thought there was enough room, {{but}} the two aircraft collided. {{As a result,}} the B737's right aileron was badly damaged, and the A320's left wing had minor damage, but nobody was injured. Both captains reported it at once. Because fuel was leaking from the Boeing, fire services were called, but the leak didn't turn into a fire. {{In the end,}} the Boeing crew complained that they were parked with the parking brake set when they were hit.`,
 37:`{{This story is about}} a landing gear problem. An Air China pilot was ready for takeoff, but he was told to hold short and give way to ACA702 on final. {{When}} ACA702 {{was}} on final, it declared an emergency because of a landing gear problem. It asked for a low pass, and the controller confirmed that the gear was still up. {{Because}} the gear was stuck, the crew asked for a touch-and-go to shake it down, but it still didn't come down. So {{the crew decided to}} make a belly landing. {{Then,}} ACA702 landed on a runway covered with foam. {{In the end,}} nobody was killed, and there were only some minor injuries.`,
@@ -473,6 +478,16 @@ const MODEL={
 81:`{{This story is about}} a ditching in a river. One day in 2000, Flight 154 reported a bird strike three minutes after takeoff and asked to return to the departure airport. {{Because}} the RVR at the airport was below the minimums, the captain decided to make an emergency landing at airport A, and the controller quickly got permission for runway 15. {{When the aircraft was}} on its way, it couldn't reach airport A because it didn't have enough altitude. {{As a result,}} {{the crew decided to}} ditch in a river and told the controllers. {{In the end,}} with no engine power, they landed in the river at about 150 miles per hour.`,
 83:`{{This story is about}} an accident during a missed approach. One day, Indonesia 205 took off from Jinan to Hangzhou, and about an hour later, it was handed over to Hangzhou Approach. {{When the aircraft was}} approaching, {{the controller told}} it {{to}} slow down to 190 knots and then to 160 knots. Three minutes later, it passed the outer marker. {{Because}} of separation, the controller gave a missed approach clearance: turn right heading 180 and climb to 900 meters. {{But}} during the missed approach, the aircraft went out of control because of a mechanical problem. {{As a result,}} it kept descending with a high angle of attack and hit trees and buildings. {{In the end,}} part of the fuselage was damaged.`
 };
+const CP={
+ A:[["… was cleared to taxi to runway …",/was cleared to taxi to/],["At the same time, the tower cleared … for takeoff",/cleared [\w ]+? for takeoff/],["so the two aircraft were on different frequencies",/on different frequencies/],["vacate(d) the runway (via taxiway …)",/vacated? (the )?runway/],["crossed the holding sign / a stop bar and entered the runway",/crossed (the holding sign|a lit stop bar)/],["didn't notice the mistake / the vehicle",/didn't notice (the mistake|the vehicle|the Bombardier|the tractor)/],["lined up on the wrong runway",/lined up on the wrong runway/],["the two aircraft (almost) collided",/the two aircraft (almost |would probably have )?collided|the tails of the two aircraft collided/],["missed each other by only … feet",/missed each other by only [\d,]+ feet/],["… was badly damaged, and … had minor damage",/badly damaged|had minor damage/],["nobody was injured",/nobody was injured/],["lost situational awareness",/lost situational awareness/]],
+ B:[["the left / number one engine failed",/(left|number one) engine (had )?failed|left engine failure/],["an engine caught fire",/caught fire|on fire/],["declared an emergency / Mayday / PAN PAN",/declared (an emergency|Mayday|PAN PAN)/],["shut down the engine",/shut down the engine/],["completed the checklist",/completed the checklist|followed the emergency checklist/],["was too heavy to land, so … dump fuel",/too heavy to land/],["return to the departure airport / divert to …",/return(ed)? to (the departure airport|London|Perth)|divert/],["put on oxygen masks",/put on (their )?oxygen masks/],["fire services / ambulances were standing by",/standing by/],["landed safely on runway …",/landed safely/],["all the passengers were evacuated safely",/evacuated safely/],["nobody was injured / everyone on board was killed",/nobody (else )?was injured|everyone on board was killed/],["asked for priority landing / an ambulance / a low pass",/asked for/],["… was not done properly / had not been closed and locked properly",/properly/],["went out of control / lost control",/(went out of|lost) control|couldn't be controlled/],["hit the ground / hit trees and buildings / crashed",/hit (the ground|trees)|crashed/],["was taken to hospital",/taken to hospital/]],
+ C:[["the RVR was …, which was below the minimums",/below the minimums/],["went around and made a second approach",/went around|second (ILS )?approach/],["got radar vectors / vectored them to runway …",/radar vectors|vectored (them|it) to/],["Because of the tailwind / wind shear, …",/[Bb]ecause of (a |the )?(strong )?(tailwind|wind shear)/],["ran off the runway",/ran off (the end of |the right side of )?the runway|ran off the runway/],["hit … and crashed / crashed into …",/and crashed|crashed into/],["met moderate turbulence",/met (10 to 15 seconds of moderate )?turbulence/],["… were injured and taken to hospital",/taken to hospital/],["everyone on board was killed",/everyone on board was killed/]],
+ D:[["read back …",/read back/],["didn't notice the mistake",/didn't notice/],["got no reply / there was no reply",/no reply/],["on different frequencies",/on different frequencies/],["confused … with …",/confused [\w ]+? with/],["asked the controller to clarify",/to clarify/],["realized they had …",/realized/],["declared an emergency",/declared an emergency/],["controllers must use standard phraseology",/standard phraseology/],["the controller said / asked, \"…\"",/(said|asked), "/],["TCAS showed / gave a warning / a resolution advisory",/TCAS (showed|gave|had already given)/],["descend / climb to FL…",/(climb|descend)(ed)? (back )?to (FL|near FL|the next)/],["… landed safely",/landed safely/]],
+ E:[["asked for … / asked the pilot to …",/asked (for|the pilot|if)/],["… panicked",/panicked/],["was so surprised that …",/so surprised that/],["pretended …",/pretend/],["… said / shouted, \"…\"",/(said|shouted), "/],["the flight attendant said / asked / smiled …",/attendant (said|asked|smiled|served)/],["… seat(s) in first class / swap seats",/seats?\b/]],
+ F:[["… is one of the … in the world / in China",/one of the (highest|most)/],["some research said that / some people think that …",/some (research said|people think) that/],["others say that although …",/others say that/],["in the past, …",/in the past/],["it was the first … in … years",/the first [\w-]+ [\w ]*?in \d+ years/],["… took about … hours",/took about/],["… because …",/because/]]
+};
+const cpIn=(id,re)=>{const s=S.find(x=>x[0]===id);return re.test(MOD(s).replace(/\{\{|\}\}/g,""))};
+function cpList(cat){return CP[cat].map(([t,re])=>{const ids=S.filter(s=>s[1]===cat&&!DUP(s)&&cpIn(s[0],re)).map(s=>s[0]);return {t,re,ids}}).filter(x=>x.ids.length)}
 function MOD(s){if(MODEL[s[0]])return MODEL[s[0]];if(s[0]===82)return MODEL[33].replace(/128/g,"188");
   const r=s[5].startsWith("=")?+s[5].slice(1):({51:30,52:31})[s[0]];return MODEL[r]||""}
 const $=id=>document.getElementById(id);
@@ -529,10 +544,13 @@ function go(i){
   {const m=MOD(s);const plain=m.replace(/\{\{|\}\}/g,"");const n=plain.split(/\s+/).filter(Boolean).length;
    $("mwc").textContent=`${n} 词 · 按每分钟 100 词约 ${Math.round(n/100*60)} 秒`;
    const esc=t=>t.replace(/&/g,"&amp;").replace(/</g,"&lt;");
-   $("model").innerHTML=esc(m).replace(/\{\{(.*?)\}\}/g,'<b class="fr">$1</b>');}
+   let x=esc(m);for(const [t,re] of CP[s[1]]){x=x.replace(new RegExp(re.source,"g"),w=>`\u0001${w}\u0002`)}
+   $("model").innerHTML=x.replace(/\{\{(.*?)\}\}/g,'<b class="fr">$1</b>').replace(/\u0001/g,'<u class="cp">').replace(/\u0002/g,'</u>');}
   $("checks").innerHTML=CHECKS.map((c,k)=>`<label for="ck${k}"><input type="checkbox" id="ck${k}"><span><b>${c[0]}</b>${c[1]}</span></label>`).join("");
   $("tplTitle").textContent=CATS[s[1]].name+" · 5 级句型";
   $("tpl").innerHTML=CATS[s[1]].tpl.map(t=>`<li>${t}</li>`).join("")+`<li class="warn">句型只是框架，填进去的内容必须来自原文。原文没说的结果、伤亡和教训不要加。</li>`;
+  $("cpl").innerHTML=cpList(s[1]).map(c=>`<li><code>${c.t.replace(/&/g,"&amp;").replace(/</g,"&lt;")}</code> <span class="mute">用在 ${c.ids.length} 篇：${c.ids.map(i=>`<a href="#" class="qa" data-q="${i}">Q${i}</a>`).join(" ")}</span></li>`).join("");
+  $("cplTitle").textContent=CATS[s[1]].name+" · 本类通用句";
   $("srs").textContent=srsText(s[0]);
   renderList();
 }
@@ -540,17 +558,19 @@ const TOTAL=300;let tT=null,left=TOTAL,running=false,listenMsg="",sayFrom=TOTAL;
 const fmt=n=>`${Math.floor(n/60)}:${String(n%60).padStart(2,"0")}`;
 function phaseText(){if(listenMsg)return listenMsg;
   if(left<=0)return "时间到。考场上会自动跳到下一题。点「对照答案」检查。";
-  if(sayFrom-left<30&&left>60)return "录音放完了：先用约 30 秒把笔记排成骨架，想好开头第一句";
+  if(sayFrom-left<30)return "录音放完了：先用约 30 秒把笔记排成骨架，想好开头第一句";
   if(left>60)return "开始录音复述，按时间顺序讲完";
   return "最后 1 分钟：收尾，补一句结果或原因（原文有才说），然后结束录音";}
 function tick(){$("timer").textContent=fmt(Math.max(left,0));$("timer").classList.toggle("warn",left<=60);$("phase").textContent=phaseText()}
 function resetTimer(){clearInterval(tT);running=false;left=TOTAL;sayFrom=TOTAL;listenMsg="";$("timer").textContent=fmt(TOTAL);$("timer").classList.remove("warn");
-  $("phase").textContent="点「考场播放」：录音和 300 秒同时开始，放两遍、中间隔 10 秒";$("btnPlay").textContent="开始 300 秒";$("btnStop").textContent="暂停"}
+  $("phase").textContent="点「考场播放」：录音放两遍、中间隔 10 秒，放完自动开始 300 秒（和考场一样）";$("btnPlay").textContent="开始 300 秒";$("btnStop").textContent="暂停"}
 function runTimer(){clearInterval(tT);running=true;tT=setInterval(()=>{left--;tick();if(left<=0){clearInterval(tT);running=false;stopExam();tick()}},1000)}
 function start(){$("btnPlay").textContent="重新开始";$("btnStop").textContent="暂停";tick();runTimer()}
 function stop(){clearInterval(tT);running=false}
 $("btnPlay").onclick=()=>{stopExam();left=TOTAL;sayFrom=TOTAL;start()};
-$("btnStop").onclick=()=>{if(running){stop();pauseExam();$("btnStop").textContent="继续"}else if(left>0&&left<TOTAL){$("btnStop").textContent="暂停";resumeExam();runTimer()}};
+let examPaused=false;
+$("btnStop").onclick=()=>{if(examState){if(examPaused){examPaused=false;resumeExam();$("btnStop").textContent="暂停"}else{examPaused=true;pauseExam();$("btnStop").textContent="继续"}return}
+  if(running){stop();$("btnStop").textContent="继续"}else if(left>0&&left<TOTAL){$("btnStop").textContent="暂停";runTimer()}};
 $("btnReveal").onclick=()=>{stop();$("answer").hidden=false;$("answer").scrollIntoView({behavior:"smooth",block:"start"})};
 $("btnOk").onclick=()=>{mark(true);$("srs").textContent="已记录：过了 · "+srsText(S[cur][0]);renderList()};
 $("btnFail").onclick=()=>{mark(false);$("srs").textContent="已记录：没过 · 明天再练";renderList()};
@@ -604,11 +624,12 @@ $("audDl").onclick=async()=>{const urls=[...new Set(Object.values(AUD))];if(!url
 $("audClear").onclick=async()=>{AUD={};try{localStorage.removeItem(AKEY)}catch(e){}try{await caches.delete(ACACHE)}catch(e){}audStat();loadAudio()};
 $("arate").onchange=()=>{$("aud").playbackRate=+$("arate").value};
 $("btnExam").onclick=()=>{const a=$("aud");if(!a.src)return;stopExam();resetTimer();examState=1;a.currentTime=0;a.playbackRate=+$("arate").value;
-  setListen("第一遍：只抓谁、哪个阶段、出了什么事、结果");start();
+  examPaused=false;setListen("第一遍：只抓谁、哪个阶段、出了什么事、结果");
   a.play().catch(()=>{stopExam();resetTimer();$("phase").textContent="播放失败：没网又没下载到本机时听不了"})};
 $("aud").addEventListener('ended',()=>{if(examState===1){examState=2;gapN=10;gap()}
-  else if(examState===3){examState=0;listenMsg="";sayFrom=left;tick()}});
+  else if(examState===3){examState=0;listenMsg="";left=TOTAL;sayFrom=TOTAL;start()}});
 const _go=go;go=function(i){_go(i);loadAudio()};
+document.addEventListener('click',e=>{const a=e.target.closest('.qa');if(!a)return;e.preventDefault();go(S.findIndex(s=>s[0]===+a.dataset.q));$("answer").hidden=false;window.scrollTo({top:0,behavior:"smooth"})});
 audStat();
 go(0);
 </script>
