@@ -646,7 +646,7 @@ const CARDIX={};CARDS.forEach((c,i)=>CARDIX[c.id]=i);
 function nbPosList(v){const re=nbRe(v.w);const out={};const put=s=>{if(!s)return;const o=(CARDIX[s.g]??999)*1e4+s.l;if(!out[s.g]||o<out[s.g].o){const card=CARDS[CARDIX[s.g]];out[s.g]={k:s.g,o:o,g:'第'+CN[s.c]+'章 · '+s.g+(card&&card.zh?' '+card.zh:''),lab:lab(s)}}};
 const firstIn=c=>{let best=null;for(const x of DATA){if((c===undefined||x.c===c)&&re.test(x.en)){const o=(CARDIX[x.g]??999)*1e4+x.l;if(!best||o<best.o)best={o,x}}}return best&&best.x};
 const CNI={'一':0,'二':1,'三':2,'四':3,'五':4,'六':5,'七':6,'八':7};
-[v.src||''].concat(v.srcs||[]).forEach(src=>{const m=/^(\d)-(\d{3})$/.exec(src);if(m){const s=DATA.find(x=>x.c===+m[1]-1&&x.l===+m[2]);put(s&&re.test(s.en)?s:firstIn(+m[1]-1));return}const c=/^第(.)章/.exec(src);if(c&&CNI[c[1]]!==undefined)put(firstIn(CNI[c[1]]))});
+[v.src||''].concat(v.srcs||[]).forEach(src=>{const rq=/^故事复述 Q(\d+)$/.exec(src);if(rq){const o=8e8+ +rq[1];if(!out.retell||o<out.retell.o)out.retell={k:'retell',o:o,g:'故事复述',lab:'Q'+rq[1]};return}const m=/^(\d)-(\d{3})$/.exec(src);if(m){const s=DATA.find(x=>x.c===+m[1]-1&&x.l===+m[2]);put(s&&re.test(s.en)?s:firstIn(+m[1]-1));return}const c=/^第(.)章/.exec(src);if(c&&CNI[c[1]]!==undefined)put(firstIn(CNI[c[1]]))});
 let L=Object.values(out);if(!L.length){const s=firstIn();if(s)put(s);L=Object.values(out)}if(!L.length)return [{o:9e9,g:'其他（句子里找不到）',lab:''}];return L.sort((a,b)=>a.o-b.o)}
 function nbPos(v){return nbPosList(v)[0]}
 const reEsc=x=>x.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');

@@ -96,6 +96,12 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .filebtn{font:600 14px var(--sans);padding:9px 14px;border-radius:8px;border:1px solid var(--accent);color:var(--accent);cursor:pointer}
 .model u.cp{text-decoration:underline;text-decoration-color:var(--ok);text-decoration-thickness:2px;text-underline-offset:3px}
 .qa{color:var(--accent);text-decoration:none;font-family:var(--mono);font-size:12px}
+.nbbar{position:fixed;left:0;right:0;bottom:0;z-index:20;background:var(--panel);border-top:2px solid var(--accent);box-shadow:0 -6px 18px rgba(0,0,0,.12);padding:10px max(16px,env(safe-area-inset-right,0px)) calc(10px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:grid;gap:8px}
+.nbrow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;max-width:1180px;margin:0 auto;width:100%}
+.nbrow b{font:600 16px var(--mono)}
+.nbrow input{flex:1;min-width:140px;font:14px var(--sans);padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));z-index:21;background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px}
+.nbtip{margin:6px 0 0}
 .tpl li.warn{list-style:none;margin-left:-18px;color:var(--muted);font-size:13px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -271,9 +277,11 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
       <div class="kw" id="kw"></div>
       <h2 style="margin-top:16px">复述范文 · <span id="mwc"></span></h2>
       <div class="orig model" id="model"></div>
+      <p class="mute nbtip">在范文或原文里选中一个词或短语，就能加入 900 句的单词本。</p>
       <p class="mute" style="margin:6px 0 0">加粗的是通用主干句型，每篇都按这个顺序说；同一件事在所有例文里用同一个说法，见「练习方法」里的统一表达库。范文只用原文里有的信息，用常用词，全程过去时，控制在 100–140 词，用考场正常语速说 60–90 秒。不用逐字背：记住本类句型，把这篇的事实填进去。</p>
       <h2 style="margin-top:16px">参考原文</h2>
       <div class="orig" id="orig"></div>
+      <p class="mute" id="nbHere"></p>
       <h2 style="margin-top:16px">中文翻译</h2>
       <div class="zh" id="zh"></div>
       <h2 style="margin-top:16px">回听自己的录音，按评分项自查</h2>
@@ -301,6 +309,16 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
   </main>
 </div>
 
+
+<div class="nbbar" id="nbbar" hidden>
+  <div class="nbrow"><b id="nbw"></b><span class="mute" id="nbsrc"></span></div>
+  <div class="nbrow">
+    <input id="nbz" type="text" placeholder="中文意思（可不填）" autocomplete="off">
+    <button class="pri" id="nbAddB">加入单词本</button>
+    <button id="nbCancel">取消</button>
+  </div>
+</div>
+<div class="toast" id="toast" hidden></div>
 <script>
 const CATS={
  A:{name:"跑道与滑行冲突",tpl:["① 开场：<code>This story is about …</code>","② 背景：<code>While … was …, …</code> / <code>When the aircraft was …, …</code>","③ 本类关键句：<code>The controller told … to …, but …</code>","④ 结果：<code>As a result, …</code>（前一件事真的导致了后一件事才用；只是先后顺序就用 <code>Then, / Later,</code>，转折用 <code>However,</code>，侥幸用 <code>Luckily,</code>）","⑤ 收尾：<code>In the end, …</code> / 原文有原因：<code>The cause was that …</code>"]},
@@ -631,6 +649,35 @@ $("aud").addEventListener('ended',()=>{if(examState===1){examState=2;gapN=10;gap
 const _go=go;go=function(i){_go(i);loadAudio()};
 document.addEventListener('click',e=>{const a=e.target.closest('.qa');if(!a)return;e.preventDefault();go(S.findIndex(s=>s[0]===+a.dataset.q));$("answer").hidden=false;window.scrollTo({top:0,behavior:"smooth"})});
 audStat();
+/* ---- 加入 900 句单词本 ---- */
+const NBKEY='icao900.nb.v1';
+const nbLoad=()=>{try{return JSON.parse(localStorage.getItem(NBKEY)||'{}')||{}}catch(e){return {}}};
+let nbSel="",nbCtx="",toastT=null;
+function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2200)}
+function nbClean(w){return (w||'').replace(/\s+/g,' ').trim().replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9')]+$/g,'')}
+function nbHere(){const id=S[cur][0],src='故事复述 Q'+id,nb=nbLoad();
+  const ws=Object.values(nb).filter(v=>!v.del&&[v.src||''].concat(v.srcs||[]).includes(src)).map(v=>v.w);
+  $("nbHere").textContent=ws.length?`本篇已加入单词本：${ws.join(" · ")}`:""}
+function nbCheckSel(){const s=window.getSelection();if(!s||s.isCollapsed){return}
+  const n=s.anchorNode&&(s.anchorNode.nodeType===1?s.anchorNode:s.anchorNode.parentElement);
+  if(!n||!n.closest||!n.closest('#model,#orig'))return;
+  const w=nbClean(s.toString());if(!w||!/[A-Za-z]/.test(w))return;
+  if(w.length>60){toast('选得太长了，选一个词或短语即可');return}
+  nbSel=w;const box=n.closest('#model,#orig').textContent;
+  const sent=box.split(/(?<=[.!?])\s+/).find(x=>x.toLowerCase().includes(w.toLowerCase()))||"";nbCtx=sent.trim();
+  const ex=nbLoad()[w.toLowerCase()];
+  $("nbw").textContent=w;$("nbsrc").textContent=`来自故事复述 Q${S[cur][0]}`+(ex&&!ex.del?" · 单词本里已有，会补记这一篇":"");
+  $("nbz").value=ex&&!ex.del&&ex.z?ex.z:"";$("nbbar").hidden=false}
+let selT=null;document.addEventListener('selectionchange',()=>{clearTimeout(selT);selT=setTimeout(nbCheckSel,350)});
+$("nbCancel").onclick=()=>{$("nbbar").hidden=true;try{window.getSelection().removeAllRanges()}catch(e){}};
+$("nbAddB").onclick=()=>{const w=nbSel;if(!w)return;const k=w.toLowerCase(),src='故事复述 Q'+S[cur][0],z=$("nbz").value.trim();
+  const nb=nbLoad();const v=nb[k];
+  if(v&&!v.del){const all=[v.src||''].concat(v.srcs||[]);const nv=Object.assign({},v,{t:Date.now()});
+    if(!all.includes(src))nv.srcs=(v.srcs||[]).concat([src]);if(z&&!v.z)nv.z=z;nb[k]=nv;toast(all.includes(src)&&!(z&&!v.z)?'单词本里已经有：'+w:'已更新单词本：'+w)}
+  else{nb[k]={w:w,src:src,t:Date.now(),z:z,n:nbCtx};toast('已加入单词本：'+w)}
+  try{localStorage.setItem(NBKEY,JSON.stringify(nb))}catch(e){toast('保存失败：浏览器不允许本地存储')}
+  $("nbbar").hidden=true;try{window.getSelection().removeAllRanges()}catch(e){};nbHere()};
+const _go2=go;go=function(i){_go2(i);$("nbbar").hidden=true;nbHere()};
 go(0);
 </script>
 <script>if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(function(){})}</script></body></html>
