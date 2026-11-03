@@ -102,6 +102,17 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .nbrow input{flex:1;min-width:140px;font:14px var(--sans);padding:8px;border-radius:8px;border:1px solid var(--line);background:var(--bg);color:var(--ink)}
 .toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(90px + env(safe-area-inset-bottom,0px));z-index:21;background:var(--ink);color:var(--bg);padding:8px 14px;border-radius:8px;font-size:14px}
 .nbtip{margin:6px 0 0}
+.rnbg{margin-top:14px}
+.rnbg h3{font-size:13px;color:var(--accent);margin:0 0 6px;font-weight:600}
+.rnbi{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
+.rnbi .w{font:600 15px var(--mono)}
+.rnbi .z{color:var(--ink)}
+.rnbi .ctx{grid-column:1/-1;color:var(--muted);font-size:13px}
+.rnbi .ctx .qa{margin-left:6px}
+.rnbi .act{display:flex;gap:6px}
+.rnbi .act button{padding:3px 8px;font-size:12px}
+.rnbi input{font:14px var(--sans);padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
+#rnbList.hidez .z{filter:blur(6px);cursor:pointer}
 .tpl li.warn{list-style:none;margin-left:-18px;color:var(--muted);font-size:13px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
@@ -249,6 +260,17 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
       <div class="mute" id="srs" style="margin-top:8px"></div>
     </section>
 
+    <details class="card rules" id="rnbcard">
+      <summary>故事复述单词本 <span class="mute" id="rnbCount"></span></summary>
+      <div class="row" style="margin-top:10px">
+        <button id="rnbHide" aria-pressed="false">遮住中文自测</button>
+        <label class="mute" for="rnbSort">排序</label>
+        <select id="rnbSort"><option value="q">按题号</option><option value="t">最近加入</option><option value="a">按字母</option></select>
+        <button id="rnbEdit">编辑</button>
+      </div>
+      <div id="rnbList"></div>
+    </details>
+
     <details class="card rules" id="audcard">
       <summary>录音：导入题库文件 / 下载到本机离线听</summary>
       <div class="mstep">
@@ -277,7 +299,7 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
       <div class="kw" id="kw"></div>
       <h2 style="margin-top:16px">复述范文 · <span id="mwc"></span></h2>
       <div class="orig model" id="model"></div>
-      <p class="mute nbtip">在范文或原文里选中一个词或短语，就能加入 900 句的单词本。</p>
+      <p class="mute nbtip">在范文或原文里选中一个词或短语，就能加入故事复述单词本。</p>
       <p class="mute" style="margin:6px 0 0">加粗的是通用主干句型，每篇都按这个顺序说；同一件事在所有例文里用同一个说法，见「练习方法」里的统一表达库。范文只用原文里有的信息，用常用词，全程过去时，控制在 100–140 词，用考场正常语速说 60–90 秒。不用逐字背：记住本类句型，把这篇的事实填进去。</p>
       <h2 style="margin-top:16px">参考原文</h2>
       <div class="orig" id="orig"></div>
@@ -650,33 +672,58 @@ const _go=go;go=function(i){_go(i);loadAudio()};
 document.addEventListener('click',e=>{const a=e.target.closest('.qa');if(!a)return;e.preventDefault();go(S.findIndex(s=>s[0]===+a.dataset.q));$("answer").hidden=false;window.scrollTo({top:0,behavior:"smooth"})});
 audStat();
 /* ---- 加入 900 句单词本 ---- */
-const NBKEY='icao900.nb.v1';
-const nbLoad=()=>{try{return JSON.parse(localStorage.getItem(NBKEY)||'{}')||{}}catch(e){return {}}};
-let nbSel="",nbCtx="",toastT=null;
+const RNBKEY='retell.nb.v1';
+const nbLoad=()=>{try{return JSON.parse(localStorage.getItem(RNBKEY)||'{}')||{}}catch(e){return {}}};
+const nbStore=nb=>{try{localStorage.setItem(RNBKEY,JSON.stringify(nb));return true}catch(e){toast('保存失败：浏览器不允许本地存储');return false}};
+/* 把之前存进 900 句单词本的故事复述词搬过来 */
+(function migrate(){try{const k9='icao900.nb.v1';const n9=JSON.parse(localStorage.getItem(k9)||'{}')||{};const nb=nbLoad();let ch=false;
+  for(const k in n9){const v=n9[k];if(v.del)continue;const all=[v.src||''].concat(v.srcs||[]);const rs=all.filter(s=>/^故事复述 Q\d+$/.test(s));if(!rs.length)continue;
+    const qs=rs.map(s=>+s.replace(/\D/g,''));if(!nb[k])nb[k]={w:v.w,q:qs,z:v.z||'',n:v.n||'',t:v.t||Date.now()};else nb[k].q=[...new Set((nb[k].q||[]).concat(qs))];
+    const rest=all.filter(s=>s&&!rs.includes(s));n9[k]=rest.length?Object.assign({},v,{src:rest[0],srcs:rest.slice(1),t:Date.now()}):Object.assign({},v,{del:true,t:Date.now()});ch=true}
+  if(ch){localStorage.setItem(k9,JSON.stringify(n9));nbStore(nb)}}catch(e){}})();
+let nbSel="",nbCtx="",toastT=null,rnbEd=false;
 function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2200)}
 function nbClean(w){return (w||'').replace(/\s+/g,' ').trim().replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9')]+$/g,'')}
-function nbHere(){const id=S[cur][0],src='故事复述 Q'+id,nb=nbLoad();
-  const ws=Object.values(nb).filter(v=>!v.del&&[v.src||''].concat(v.srcs||[]).includes(src)).map(v=>v.w);
+const escH=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
+function nbHere(){const id=S[cur][0],nb=nbLoad();
+  const ws=Object.values(nb).filter(v=>(v.q||[]).includes(id)).map(v=>v.w);
   $("nbHere").textContent=ws.length?`本篇已加入单词本：${ws.join(" · ")}`:""}
+function renderRNB(){const nb=nbLoad();const it=Object.entries(nb);$("rnbCount").textContent=it.length?`· ${it.length} 个`:'· 还没有词';
+  if(!it.length){$("rnbList").innerHTML='<p class="mute">在「对照答案」的范文或原文里选中词或短语，点「加入单词本」，就会出现在这里。</p>';return}
+  const mode=$("rnbSort").value;const row=([k,v])=>`<div class="rnbi"><span class="w">${escH(v.w)}</span>`+
+    (rnbEd?`<input data-k="${escH(k)}" value="${escH(v.z||'')}" placeholder="中文意思">`:`<span class="z" title="点一下显示">${escH(v.z||'—')}</span>`)+
+    `<span class="act"><button data-say="${escH(v.w)}">🔊</button>${rnbEd?`<button data-del="${escH(k)}">删除</button>`:''}</span>`+
+    `<span class="ctx">${escH(v.n||'')}${(v.q||[]).map(q=>`<a href="#" class="qa" data-q="${q}">Q${q}</a>`).join('')}</span></div>`;
+  let html='';
+  if(mode==='q'){const G={};for(const e of it){const q=Math.min(...(e[1].q||[999]));(G[q]=G[q]||[]).push(e)}
+    for(const q of Object.keys(G).map(Number).sort((a,b)=>a-b)){const s=S.find(x=>x[0]===q);html+=`<div class="rnbg"><h3>Q${q} ${s?escH(s[2]):''}</h3>${G[q].sort((a,b)=>a[1].w.localeCompare(b[1].w)).map(row).join('')}</div>`}}
+  else{const L=it.sort(mode==='t'?(a,b)=>(b[1].t||0)-(a[1].t||0):(a,b)=>a[1].w.localeCompare(b[1].w,'en',{sensitivity:'base'}));html='<div class="rnbg">'+L.map(row).join('')+'</div>'}
+  $("rnbList").innerHTML=html}
 function nbCheckSel(){const s=window.getSelection();if(!s||s.isCollapsed){return}
   const n=s.anchorNode&&(s.anchorNode.nodeType===1?s.anchorNode:s.anchorNode.parentElement);
   if(!n||!n.closest||!n.closest('#model,#orig'))return;
   const w=nbClean(s.toString());if(!w||!/[A-Za-z]/.test(w))return;
   if(w.length>60){toast('选得太长了，选一个词或短语即可');return}
   nbSel=w;const box=n.closest('#model,#orig').textContent;
-  const sent=box.split(/(?<=[.!?])\s+/).find(x=>x.toLowerCase().includes(w.toLowerCase()))||"";nbCtx=sent.trim();
+  nbCtx=(box.split(/(?<=[.!?])\s+/).find(x=>x.toLowerCase().includes(w.toLowerCase()))||"").trim();
   const ex=nbLoad()[w.toLowerCase()];
-  $("nbw").textContent=w;$("nbsrc").textContent=`来自故事复述 Q${S[cur][0]}`+(ex&&!ex.del?" · 单词本里已有，会补记这一篇":"");
-  $("nbz").value=ex&&!ex.del&&ex.z?ex.z:"";$("nbbar").hidden=false}
+  $("nbw").textContent=w;$("nbsrc").textContent=`来自 Q${S[cur][0]}`+(ex?" · 单词本里已有，会补记这一篇":"");
+  $("nbz").value=ex&&ex.z?ex.z:"";$("nbbar").hidden=false}
 let selT=null;document.addEventListener('selectionchange',()=>{clearTimeout(selT);selT=setTimeout(nbCheckSel,350)});
 $("nbCancel").onclick=()=>{$("nbbar").hidden=true;try{window.getSelection().removeAllRanges()}catch(e){}};
-$("nbAddB").onclick=()=>{const w=nbSel;if(!w)return;const k=w.toLowerCase(),src='故事复述 Q'+S[cur][0],z=$("nbz").value.trim();
+$("nbAddB").onclick=()=>{const w=nbSel;if(!w)return;const k=w.toLowerCase(),q=S[cur][0],z=$("nbz").value.trim();
   const nb=nbLoad();const v=nb[k];
-  if(v&&!v.del){const all=[v.src||''].concat(v.srcs||[]);const nv=Object.assign({},v,{t:Date.now()});
-    if(!all.includes(src))nv.srcs=(v.srcs||[]).concat([src]);if(z&&!v.z)nv.z=z;nb[k]=nv;toast(all.includes(src)&&!(z&&!v.z)?'单词本里已经有：'+w:'已更新单词本：'+w)}
-  else{nb[k]={w:w,src:src,t:Date.now(),z:z,n:nbCtx};toast('已加入单词本：'+w)}
-  try{localStorage.setItem(NBKEY,JSON.stringify(nb))}catch(e){toast('保存失败：浏览器不允许本地存储')}
-  $("nbbar").hidden=true;try{window.getSelection().removeAllRanges()}catch(e){};nbHere()};
+  if(v){const had=(v.q||[]).includes(q);v.q=had?v.q:(v.q||[]).concat([q]);if(z)v.z=z;v.t=Date.now();toast(had&&!z?'单词本里已经有：'+w:'已更新单词本：'+w)}
+  else{nb[k]={w:w,q:[q],z:z,n:nbCtx,t:Date.now()};toast('已加入单词本：'+w)}
+  nbStore(nb);$("nbbar").hidden=true;try{window.getSelection().removeAllRanges()}catch(e){};nbHere();renderRNB()};
+$("rnbSort").onchange=renderRNB;
+$("rnbEdit").onclick=()=>{rnbEd=!rnbEd;$("rnbEdit").textContent=rnbEd?'完成编辑':'编辑';renderRNB()};
+$("rnbHide").onclick=e=>{const on=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',on);e.currentTarget.textContent=on?'显示中文':'遮住中文自测';$("rnbList").classList.toggle('hidez',on)};
+$("rnbList").addEventListener('change',e=>{const k=e.target.dataset.k;if(!k)return;const nb=nbLoad();if(nb[k]){nb[k].z=e.target.value.trim();nbStore(nb)}});
+$("rnbList").addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(d){const nb=nbLoad();delete nb[d.dataset.del];nbStore(nb);renderRNB();nbHere();return}
+  const s=e.target.closest('[data-say]');if(s&&window.speechSynthesis){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s.dataset.say);u.lang='en-US';u.rate=0.9;speechSynthesis.speak(u)}catch(err){}return}
+  const z=e.target.closest('.hidez .z');if(z)z.style.filter='none'});
+renderRNB();
 const _go2=go;go=function(i){_go2(i);$("nbbar").hidden=true;nbHere()};
 go(0);
 </script>
