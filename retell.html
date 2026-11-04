@@ -107,6 +107,8 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .rnbi{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
 .rnbi .w{font:600 15px var(--mono)}
 .rnbi .z{color:var(--ink)}
+.ipa{font-family:var(--mono);color:var(--muted);font-size:13px}
+.rnbi .ed{display:grid;gap:4px}
 .rnbi .ctx{grid-column:1/-1;color:var(--muted);font-size:13px}
 .rnbi .ctx .qa{margin-left:6px}
 .rnbi .act{display:flex;gap:6px}
@@ -339,14 +341,15 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 
 
 <div class="nbbar" id="nbbar" hidden>
-  <div class="nbrow"><b id="nbw"></b><span class="mute" id="nbsrc"></span></div>
+  <div class="nbrow"><b id="nbw"></b><span class="ipa" id="nbp"></span><button id="nbSay" title="听发音">🔊</button><span class="mute" id="nbsrc"></span></div>
   <div class="nbrow">
-    <input id="nbz" type="text" placeholder="中文意思（可不填）" autocomplete="off">
+    <input id="nbz" type="text" placeholder="中文意思（自动填的不对就改；短语查不到时请自己填）" autocomplete="off">
     <button class="pri" id="nbAddB">加入单词本</button>
     <button id="nbCancel">取消</button>
   </div>
 </div>
 <div class="toast" id="toast" hidden></div>
+<script src="dict.js"></script>
 <script>
 const CATS={
  A:{name:"跑道与滑行冲突",tpl:["① 开场：<code>This story is about …</code>","② 背景：<code>While … was …, …</code> / <code>When the aircraft was …, …</code>","③ 本类关键句：<code>The controller told … to …, but …</code>","④ 结果：<code>As a result, …</code>（前一件事真的导致了后一件事才用；只是先后顺序就用 <code>Then, / Later,</code>，转折用 <code>However,</code>，侥幸用 <code>Luckily,</code>）","⑤ 收尾：<code>In the end, …</code> / 原文有原因：<code>The cause was that …</code>"]},
@@ -682,6 +685,17 @@ const _go=go;go=function(i){_go(i);loadAudio()};
 document.addEventListener('click',e=>{const a=e.target.closest('.qa');if(!a)return;e.preventDefault();go(S.findIndex(s=>s[0]===+a.dataset.q));$("answer").hidden=false;window.scrollTo({top:0,behavior:"smooth"})});
 audStat();
 /* ---- 加入 900 句单词本 ---- */
+function bigGet(x){x=x.toLowerCase();return BIGD[x]||(x.endsWith('ies')&&BIGD[x.slice(0,-3)+'y'])||(x.endsWith('es')&&BIGD[x.slice(0,-2)])||(x.endsWith('s')&&BIGD[x.slice(0,-1)])||(x.endsWith('ied')&&BIGD[x.slice(0,-3)+'y'])||(x.endsWith('ed')&&(BIGD[x.slice(0,-2)]||BIGD[x.slice(0,-1)]))||(x.endsWith('ing')&&(BIGD[x.slice(0,-3)]||BIGD[x.slice(0,-3)+'e']))||(x.endsWith('ly')&&BIGD[x.slice(0,-2)])||null}
+function ipaOf(w){const ws=w.toLowerCase().replace(/’/g,"'").match(/[a-z][a-z'\-]*/g)||[];if(!ws.length)return '';return ws.map(x=>IPA[x]||IPA[x.replace(/'s$/,'')]||(x.endsWith('s')&&IPA[x.slice(0,-1)]?IPA[x.slice(0,-1)]+'z':'')||(x.endsWith('es')&&IPA[x.slice(0,-2)]?IPA[x.slice(0,-2)]+'ɪz':'')||(x.endsWith('ed')&&IPA[x.slice(0,-2)]?IPA[x.slice(0,-2)]+'d':'')||(BIGD[x]&&BIGD[x][0])||'?').join(' ')}
+const PHR={"go around":"复飞","went around":"复飞","missed approach":"复飞；进近失败","touch down":"接地","touched down":"接地","holding sign":"跑道等待位置标志","holding point":"等待点","hold short":"在（跑道）外等待","give way":"让路","take off":"起飞","takeoff clearance":"起飞许可","line up":"对正跑道","lined up":"对正跑道","vacate the runway":"脱离跑道","stop bar":"停止排灯","push back":"推出","start up":"开车（启动发动机）","taxi clearance":"滑行许可","run-up area":"试车区","runway incursion":"跑道侵入","near collision":"危险接近；险些相撞","on final":"在五边","final approach":"最后进近；五边","outer marker":"外指点标","glide path":"下滑道","glide slope":"下滑道","localizer course":"航向道","radar vectors":"雷达引导","straight-in approach":"直线进近","circling approach":"盘旋进近","visual approach":"目视进近","dump fuel":"放油","fuel dumping":"放油","fire handle":"灭火手柄","shut down":"关车；关闭（发动机）","bird strike":"鸟击","wind shear":"风切变","tail strike":"擦机尾","belly landing":"机腹着陆","rejected takeoff":"中断起飞","reject the takeoff":"中断起飞","ran off the runway":"冲出跑道","run off the runway":"冲出跑道","emergency descent":"紧急下降","cabin altitude":"座舱高度","oxygen mask":"氧气面罩","oxygen masks":"氧气面罩","seatbelt sign":"安全带指示灯","flight attendant":"乘务员","first officer":"副驾驶","read back":"复诵","stand by":"稍等；待命","standing by":"待命","traffic information":"交通情报","resolution advisory":"（TCAS）决断咨询","minimum safe altitude":"最低安全高度","below the minimums":"低于着陆最低标准","runway visual range":"跑道视程","situational awareness":"情景意识","on board":"在机上","air traffic control":"空中交通管制","declare an emergency":"宣布紧急情况","declared an emergency":"宣布紧急情况","priority landing":"优先着陆","landing gear":"起落架","nose gear":"前起落架","main gear":"主起落架","parking brake":"停留刹车","flight data recorder":"飞行数据记录器","cockpit voice recorder":"驾驶舱话音记录器","metal fatigue":"金属疲劳","engine failure":"发动机失效","left downwind":"左三边","ground controller":"地面管制员","tower controller":"塔台管制员","approach controller":"进近管制员","shift change":"交接班","emergency frequency":"应急频率","company dispatcher":"公司签派员","fire services":"消防","fire trucks":"消防车","stick shaker":"抖杆器","zero fuel weight":"零燃油重量","takeoff weight":"起飞重量","controlled flight into terrain":"可控飞行撞地","angle of attack":"迎角","thrust lever":"推力手柄","turbine blade":"涡轮叶片","altitude sickness":"高原反应"};
+const STOP=new Set('a an the of to on in at by for from with and or is are was were be been has have had it its this that his her their they he she we our us as so'.split(' '));
+function cleanG(s){return s.replace(/\\r|\r/g,'').replace(/^\s*(?:[a-z]{1,5}\.\s*)+/i,'').trim()}
+function glossOf(x){const e=bigGet(x);if(!e||!e[1])return '';return cleanG(e[1]).split(/[；;]/).map(s=>cleanG(s)).filter(Boolean).slice(0,2).join('；')}
+function zhOf(w){const k=w.toLowerCase().replace(/\s+/g,' ').trim();if(PHR[k])return PHR[k];
+  const ws=(k.match(/[a-z][a-z'\-]*/g)||[]);if(ws.length===1)return glossOf(ws[0]);
+  const lem=ws.map(x=>x.replace(/ed$/,'').replace(/ing$/,'')).join(' ');for(const key in PHR){if(k.includes(key))return PHR[key]}
+  if(BIGD[k]&&BIGD[k][1])return glossOf(k);return ''}
+const ipaSafe=w=>{try{return ipaOf(w)}catch(e){return ''}};
 const RNBKEY='retell.nb.v1';
 const nbLoad=()=>{try{return JSON.parse(localStorage.getItem(RNBKEY)||'{}')||{}}catch(e){return {}}};
 const nbStore=nb=>{try{localStorage.setItem(RNBKEY,JSON.stringify(nb));return true}catch(e){toast('保存失败：浏览器不允许本地存储');return false}};
@@ -700,10 +714,10 @@ function nbHere(){const id=S[cur][0],nb=nbLoad();
   $("nbHere").textContent=ws.length?`本篇已加入单词本：${ws.join(" · ")}`:""}
 function renderRNB(){const nb=nbLoad();const it=Object.entries(nb);$("rnbCount").textContent=it.length?`· ${it.length} 个`:'· 还没有词';
   if(!it.length){$("rnbList").innerHTML='<p class="mute">在「对照答案」的范文或原文里选中词或短语，点「加入单词本」，就会出现在这里。</p>';return}
-  const mode=$("rnbSort").value;const row=([k,v])=>`<div class="rnbi"><span class="w">${escH(v.w)}</span>`+
-    (rnbEd?`<input data-k="${escH(k)}" value="${escH(v.z||'')}" placeholder="中文意思">`:`<span class="z" title="点一下显示">${escH(v.z||'—')}</span>`)+
+  const mode=$("rnbSort").value;const row=([k,v])=>{const pp=v.p||ipaSafe(v.w),zz=v.z||zhOf(v.w);return `<div class="rnbi"><span class="w">${escH(v.w)}</span>`+
+    (rnbEd?`<span class="ed"><input data-k="${escH(k)}" data-f="p" value="${escH(pp)}" placeholder="音标"><input data-k="${escH(k)}" data-f="z" value="${escH(zz)}" placeholder="中文意思"></span>`:`<span class="pz"><span class="ipa">/${escH(pp)}/</span> <span class="z" title="点一下显示">${escH(zz||'—')}</span></span>`)+
     `<span class="act"><button data-say="${escH(v.w)}">🔊</button>${rnbEd?`<button data-del="${escH(k)}">删除</button>`:''}</span>`+
-    `<span class="ctx">${escH(v.n||'')}${(v.q||[]).map(q=>`<a href="#" class="qa" data-q="${q}">Q${q}</a>`).join('')}</span></div>`;
+    `<span class="ctx">${escH(v.n||'')}${(v.q||[]).map(q=>`<a href="#" class="qa" data-q="${q}">Q${q}</a>`).join('')}</span></div>`};
   let html='';
   if(mode==='q'){const G={};for(const e of it){const q=Math.min(...(e[1].q||[999]));(G[q]=G[q]||[]).push(e)}
     for(const q of Object.keys(G).map(Number).sort((a,b)=>a-b)){const s=S.find(x=>x[0]===q);html+=`<div class="rnbg"><h3>Q${q} ${s?escH(s[2]):''}</h3>${G[q].sort((a,b)=>a[1].w.localeCompare(b[1].w)).map(row).join('')}</div>`}}
@@ -718,20 +732,22 @@ function nbCheckSel(){const s=window.getSelection();if(!s||s.isCollapsed){return
   nbCtx=(box.split(/(?<=[.!?])\s+/).find(x=>x.toLowerCase().includes(w.toLowerCase()))||"").trim();
   const ex=nbLoad()[w.toLowerCase()];
   $("nbw").textContent=w;$("nbsrc").textContent=`来自 Q${S[cur][0]}`+(ex?" · 单词本里已有，会补记这一篇":"");
-  $("nbz").value=ex&&ex.z?ex.z:"";$("nbbar").hidden=false}
+  $("nbp").textContent="/"+(ex&&ex.p||ipaSafe(w))+"/";$("nbz").value=ex&&ex.z?ex.z:zhOf(w);$("nbbar").hidden=false}
 let selT=null;document.addEventListener('selectionchange',()=>{clearTimeout(selT);selT=setTimeout(nbCheckSel,350)});
+function say(w){if(!window.speechSynthesis)return;try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(w);u.lang='en-US';u.rate=0.85;speechSynthesis.speak(u)}catch(e){}}
+$("nbSay").onclick=()=>say(nbSel);
 $("nbCancel").onclick=()=>{$("nbbar").hidden=true;try{window.getSelection().removeAllRanges()}catch(e){}};
 $("nbAddB").onclick=()=>{const w=nbSel;if(!w)return;const k=w.toLowerCase(),q=S[cur][0],z=$("nbz").value.trim();
   const nb=nbLoad();const v=nb[k];
   if(v){const had=(v.q||[]).includes(q);v.q=had?v.q:(v.q||[]).concat([q]);if(z)v.z=z;v.t=Date.now();toast(had&&!z?'单词本里已经有：'+w:'已更新单词本：'+w)}
-  else{nb[k]={w:w,q:[q],z:z,n:nbCtx,t:Date.now()};toast('已加入单词本：'+w)}
+  else{nb[k]={w:w,q:[q],z:z,p:ipaSafe(w),n:nbCtx,t:Date.now()};toast('已加入单词本：'+w)}
   nbStore(nb);$("nbbar").hidden=true;try{window.getSelection().removeAllRanges()}catch(e){};nbHere();renderRNB()};
 $("rnbSort").onchange=renderRNB;
 $("rnbEdit").onclick=()=>{rnbEd=!rnbEd;$("rnbEdit").textContent=rnbEd?'完成编辑':'编辑';renderRNB()};
 $("rnbHide").onclick=e=>{const on=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',on);e.currentTarget.textContent=on?'显示中文':'遮住中文自测';$("rnbList").classList.toggle('hidez',on)};
-$("rnbList").addEventListener('change',e=>{const k=e.target.dataset.k;if(!k)return;const nb=nbLoad();if(nb[k]){nb[k].z=e.target.value.trim();nbStore(nb)}});
+$("rnbList").addEventListener('change',e=>{const k=e.target.dataset.k,f=e.target.dataset.f;if(!k||!f)return;const nb=nbLoad();if(nb[k]){nb[k][f]=e.target.value.trim();nb[k].t=Date.now();nbStore(nb)}});
 $("rnbList").addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(d){const nb=nbLoad();delete nb[d.dataset.del];nbStore(nb);renderRNB();nbHere();return}
-  const s=e.target.closest('[data-say]');if(s&&window.speechSynthesis){try{speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(s.dataset.say);u.lang='en-US';u.rate=0.9;speechSynthesis.speak(u)}catch(err){}return}
+  const s=e.target.closest('[data-say]');if(s){say(s.dataset.say);return}
   const z=e.target.closest('.hidez .z');if(z)z.style.filter='none'});
 renderRNB();
 const _go2=go;go=function(i){_go2(i);$("nbbar").hidden=true;nbHere()};
