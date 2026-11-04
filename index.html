@@ -786,11 +786,12 @@ var bar=document.getElementById('nbCount');if(bar&&bar.parentNode){var b=documen
  document.getElementById('csSave').onclick=function(){var v=document.getElementById('csTok').value.trim();if(!v){stat('请先粘贴令牌');return}raw.call(localStorage,TK,v);document.getElementById('csTok').value='';sync(true)};
  document.getElementById('csNow').onclick=function(){sync(true)};
  document.getElementById('csCopy').onclick=function(){var v=tok();if(!v){stat('这台设备还没有令牌');return}var done=function(){stat('令牌已复制，到另一台设备上粘贴');if(typeof toast==='function')toast('令牌已复制')};if(navigator.clipboard&&navigator.clipboard.writeText)navigator.clipboard.writeText(v).then(done,function(){prompt('长按复制令牌',v)});else prompt('长按复制令牌',v)};
- document.getElementById('csUpd').onclick=function(){stat('正在检查更新…');var go=function(){if(window.caches)caches.keys().then(function(ks){return Promise.all(ks.map(function(k){return caches.delete(k)}))}).then(function(){location.reload()});else location.reload()};if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration)navigator.serviceWorker.getRegistration().then(function(r){return r&&r.update()}).then(go,go);else go()};
+ document.getElementById('csUpd').onclick=function(){if(window.icaoUpdate)window.icaoUpdate(stat);else stat('更新组件还没加载，请刷新后再试')};
  document.getElementById('csOff').onclick=function(){localStorage.removeItem(TK);localStorage.removeItem(GK);stat('这台设备已停用云同步，本地记录保留');};
  stat(tok()?('已开启'+(localStorage.getItem(LK)?' · 上次同步 '+localStorage.getItem(LK):'')):'未开启')}
 document.addEventListener('visibilitychange',function(){if(document.visibilityState==='visible')sync()});
 window.addEventListener('online',function(){sync()});
 setTimeout(function(){sync()},1500);
 })();</script>
+<script src="update.js"></script>
 </body></html>
