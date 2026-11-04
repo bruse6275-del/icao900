@@ -1,7 +1,7 @@
-/* 检查更新：先试官网，再试大陆可能连得上的镜像。全部下载成功才替换，失败时继续用本机版本。 */
+/* 检查更新：只从 GitHub Pages 官网获取。全部下载成功才替换，失败时继续用本机版本。 */
 (function(){
 var REPO='gh/bruse6275-del/icao900@main/';
-var SRC=['./','https://gcore.jsdelivr.net/'+REPO,'https://fastly.jsdelivr.net/'+REPO,'https://testingcf.jsdelivr.net/'+REPO,'https://cdn.jsdelivr.net/'+REPO];
+var SRC=['./'];
 var FILES=[['index.html','<html',100000],['retell.html','<html',50000],['part3.html','<html',100000],['dict.js','',500000],['update.js','icaoUpdate',500],['manifest.webmanifest','icons',50]];
 var VK='icao900.ver';
 function type(f){return /\.html$/.test(f)?'text/html; charset=utf-8':/\.js$/.test(f)?'text/javascript; charset=utf-8':'application/json'}
@@ -16,9 +16,9 @@ window.icaoUpdate=async function(stat){stat=stat||function(){};
  stat('正在检查更新…');
  var found=await Promise.all(SRC.map(function(s){return get(s+'sw.js',8000).then(function(t){return {s:s,v:verOf(t)}},function(){return null})}));
  var ok=found.filter(function(x){return x&&x.v}).sort(function(a,b){return a.v<b.v?1:a.v>b.v?-1:SRC.indexOf(a.s)-SRC.indexOf(b.s)});
- if(!ok.length){stat('当前网络连不上更新源，继续使用本机版本。换个网络（比如手机流量）再试');return false}
+ if(!ok.length){stat('连不上 GitHub，继续使用本机版本。换个网络再试');return false}
  var best=ok[0],cur=await localVer();
- if(best.v<=cur){stat('已是最新（'+label(cur)+'）。镜像最多可能晚 12 小时，刚发布的内容可稍后再查');return false}
+ if(best.v<=cur){stat('已是最新（'+label(cur)+'）');return false}
  stat('发现新版本 '+label(best.v)+'，正在下载…');
  var got=[];
  for(var i=0;i<FILES.length;i++){var f=FILES[i],src=[best.s].concat(ok.slice(1).filter(function(x){return x.v===best.v}).map(function(x){return x.s})),t=null;
