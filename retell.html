@@ -674,7 +674,7 @@ $("audDl").onclick=async()=>{const urls=[...new Set(Object.values(AUD))];if(!url
     try{const r=await fetch(u,{mode:'cors'});if(!r.ok)throw 0;await c.put(u,new Response(await r.blob(),{headers:{'Content-Type':'audio/mpeg'}}));ok++}catch(e){fail++}
     $("audstat").textContent=`正在下载… ${ok+fail} / ${urls.length}`}
   $("audstat").textContent=fail?`下载完成 ${ok} 条，${fail} 条失败。失败的可能是网络问题，可以再点一次；如果一直失败，说明录音服务器不允许离线保存，这几条只能联网播放。`:`全部 ${ok} 条录音已下载到本机，没网也能听。`;loadAudio()};
-$("audClear").onclick=async()=>{AUD={};try{localStorage.removeItem(AKEY)}catch(e){}try{await caches.delete(ACACHE)}catch(e){}audStat();loadAudio()};
+$("audClear").onclick=async()=>{try{const c=await caches.open(ACACHE);for(const u of Object.values(AUD))await c.delete(u)}catch(e){}AUD={};try{localStorage.removeItem(AKEY)}catch(e){}audStat();loadAudio()};
 $("arate").onchange=()=>{$("aud").playbackRate=+$("arate").value};
 $("btnExam").onclick=()=>{const a=$("aud");if(!a.src)return;stopExam();resetTimer();examState=1;a.currentTime=0;a.playbackRate=+$("arate").value;
   examPaused=false;setListen("第一遍：只抓谁、哪个阶段、出了什么事、结果");

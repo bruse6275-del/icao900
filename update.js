@@ -10,6 +10,7 @@ function verOf(txt){var m=/icao900-(\d{10,14})/.exec(txt||'');return m?m[1]:''}
 async function localVer(){var v='';try{v=localStorage.getItem(VK)||''}catch(e){}try{(await caches.keys()).forEach(function(k){var x=verOf(k);if(x>v)v=x})}catch(e){}return v}
 async function appCache(){var ks=(await caches.keys()).filter(function(k){return /^icao900-\d/.test(k)}).sort();return caches.open(ks.length?ks[ks.length-1]:'icao900-000000000000')}
 function label(v){return v&&v.length>=12?v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12):v}
+try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
 window.icaoUpdate=async function(stat){stat=stat||function(){};
  if(!window.caches||!window.AbortController){stat('这个浏览器不支持离线更新，请直接刷新页面');return false}
  if(navigator.onLine===false){stat('设备离线，继续使用本机版本');return false}
