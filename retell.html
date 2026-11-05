@@ -113,6 +113,8 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .rnbi .ctx .qa{margin-left:6px}
 .rnbi .act{display:flex;gap:6px}
 .rnbi .act button{padding:3px 8px;font-size:12px}
+.rnbi .act .del{color:#b42318;min-width:30px}
+.toast .undo{margin-left:10px;padding:2px 10px;font-size:13px;font-weight:600}
 .rnbi input{font:14px var(--sans);padding:5px 8px;border-radius:6px;border:1px solid var(--line);background:var(--bg);color:var(--ink);width:100%}
 #rnbList.hidez .z{filter:blur(6px);cursor:pointer}
 .notes th{white-space:nowrap;color:var(--accent);width:1%}
@@ -731,7 +733,7 @@ const nbStore=nb=>{try{localStorage.setItem(RNBKEY,JSON.stringify(nb));return tr
     const rest=all.filter(s=>s&&!rs.includes(s));n9[k]=rest.length?Object.assign({},v,{src:rest[0],srcs:rest.slice(1),t:Date.now()}):Object.assign({},v,{del:true,t:Date.now()});ch=true}
   if(ch){localStorage.setItem(k9,JSON.stringify(n9));nbStore(nb)}}catch(e){}})();
 let nbSel="",nbCtx="",toastT=null,rnbEd=false;
-function toast(m){const t=$("toast");t.textContent=m;t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,2200)}
+function toast(m,undo){const t=$("toast");t.textContent=m;if(undo){const b=document.createElement('button');b.textContent='撤销';b.className='undo';b.onclick=()=>{undo();t.hidden=true};t.appendChild(b)}t.hidden=false;clearTimeout(toastT);toastT=setTimeout(()=>t.hidden=true,undo?4000:2200)}
 function nbClean(w){return (w||'').replace(/\s+/g,' ').trim().replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9')]+$/g,'')}
 const escH=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");
 function nbHere(){const id=S[cur][0],nb=nbLoad();
@@ -741,7 +743,7 @@ function renderRNB(){const nb=nbLoad();const it=Object.entries(nb);$("rnbCount")
   if(!it.length){$("rnbList").innerHTML='<p class="mute">在「对照答案」的范文或原文里选中词或短语，点「加入单词本」，就会出现在这里。</p>';return}
   const mode=$("rnbSort").value;const row=([k,v])=>{const pp=v.p||ipaSafe(v.w),zz=v.z||zhOf(v.w);return `<div class="rnbi"><span class="w">${escH(v.w)}</span>`+
     (rnbEd?`<span class="ed"><input data-k="${escH(k)}" data-f="p" value="${escH(pp)}" placeholder="音标"><input data-k="${escH(k)}" data-f="z" value="${escH(zz)}" placeholder="中文意思"></span>`:`<span class="pz"><span class="ipa">/${escH(pp)}/</span> <span class="z" title="点一下显示">${escH(zz||'—')}</span></span>`)+
-    `<span class="act"><button data-say="${escH(v.w)}">🔊</button>${rnbEd?`<button data-del="${escH(k)}">删除</button>`:''}</span>`+
+    `<span class="act"><button data-say="${escH(v.w)}">🔊</button><button class="del" data-del="${escH(k)}" title="删除" aria-label="删除">✕</button></span>`+
     `<span class="ctx">${escH(v.n||'')}${(v.q||[]).map(q=>`<a href="#" class="qa" data-q="${q}">Q${q}</a>`).join('')}</span></div>`};
   let html='';
   if(mode==='q'){const G={};for(const e of it){const q=Math.min(...(e[1].q||[999]));(G[q]=G[q]||[]).push(e)}
@@ -771,7 +773,7 @@ $("rnbSort").onchange=renderRNB;
 $("rnbEdit").onclick=()=>{rnbEd=!rnbEd;$("rnbEdit").textContent=rnbEd?'完成编辑':'编辑';renderRNB()};
 $("rnbHide").onclick=e=>{const on=e.currentTarget.getAttribute('aria-pressed')!=='true';e.currentTarget.setAttribute('aria-pressed',on);e.currentTarget.textContent=on?'显示中文':'遮住中文自测';$("rnbList").classList.toggle('hidez',on)};
 $("rnbList").addEventListener('change',e=>{const k=e.target.dataset.k,f=e.target.dataset.f;if(!k||!f)return;const nb=nbLoad();if(nb[k]){nb[k][f]=e.target.value.trim();nb[k].t=Date.now();nbStore(nb)}});
-$("rnbList").addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(d){const nb=nbLoad();delete nb[d.dataset.del];nbStore(nb);renderRNB();nbHere();return}
+$("rnbList").addEventListener('click',e=>{const d=e.target.closest('[data-del]');if(d){const k=d.dataset.del,nb=nbLoad(),old=nb[k];if(!old)return;delete nb[k];nbStore(nb);renderRNB();nbHere();toast('已删除：'+old.w,()=>{const n2=nbLoad();n2[k]=old;nbStore(n2);renderRNB();nbHere()});return}
   const s=e.target.closest('[data-say]');if(s){say(s.dataset.say);return}
   const z=e.target.closest('.hidez .z');if(z)z.style.filter='none'});
 renderRNB();
