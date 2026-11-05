@@ -617,12 +617,12 @@ function phaseText(){if(listenMsg)return listenMsg;
   if(left>60)return "开始录音复述，按时间顺序讲完";
   return "最后 1 分钟：收尾，补一句结果或原因（原文有才说），然后结束录音";}
 function tick(){$("timer").textContent=fmt(Math.max(left,0));$("timer").classList.toggle("warn",left<=60);$("phase").textContent=phaseText()}
-function resetTimer(){clearInterval(tT);running=false;left=TOTAL;sayFrom=TOTAL;listenMsg="";$("timer").textContent=fmt(TOTAL);$("timer").classList.remove("warn");
+function resetTimer(){clearInterval(tT);running=false;examLock=false;left=TOTAL;sayFrom=TOTAL;listenMsg="";$("timer").textContent=fmt(TOTAL);$("timer").classList.remove("warn");
   $("phase").textContent="点「考场播放」：录音放两遍、中间隔 10 秒，放完自动开始 300 秒（和考场一样）";$("btnPlay").textContent="开始 300 秒";$("btnStop").textContent="暂停"}
 function runTimer(){clearInterval(tT);running=true;tT=setInterval(()=>{left--;tick();if(left<=0){clearInterval(tT);running=false;stopExam();tick()}},1000)}
 function start(){$("btnPlay").textContent="重新开始";$("btnStop").textContent="暂停";tick();runTimer()}
-function stop(){clearInterval(tT);running=false}
-$("btnPlay").onclick=()=>{stopExam();left=TOTAL;sayFrom=TOTAL;start()};
+function stop(){clearInterval(tT);running=false;examLock=false}
+$("btnPlay").onclick=()=>{stopExam();examLock=false;left=TOTAL;sayFrom=TOTAL;start()};
 let examPaused=false;
 $("btnStop").onclick=()=>{if(examState){if(examPaused){examPaused=false;resumeExam();$("btnStop").textContent="暂停"}else{examPaused=true;pauseExam();$("btnStop").textContent="继续"}return}
   if(running){stop();$("btnStop").textContent="继续"}else if(left>0&&left<TOTAL){$("btnStop").textContent="暂停";runTimer()}};
@@ -681,8 +681,18 @@ $("arate").onchange=()=>{$("aud").playbackRate=+$("arate").value};
 $("btnExam").onclick=()=>{const a=$("aud");if(!a.src)return;stopExam();resetTimer();examState=1;a.currentTime=0;a.playbackRate=+$("arate").value;
   examPaused=false;setListen("第一遍：只抓谁、哪个阶段、出了什么事、结果");
   a.play().catch(()=>{stopExam();resetTimer();$("phase").textContent="播放失败：没网又没下载到本机时听不了"})};
-$("aud").addEventListener('ended',()=>{if(examState===1){examState=2;gapN=10;gap()}
-  else if(examState===3){examState=0;listenMsg="";left=TOTAL;sayFrom=TOTAL;start()}});
+/* 一遍放完：ended 事件 + 接近结尾兜底（有些手机放 mp3 不触发 ended） */
+let segDone=false,examLock=false;
+function segEnd(){if(segDone||!(examState===1||examState===3))return;segDone=true;const a=$("aud");try{a.pause()}catch(e){}
+  if(examState===1){examState=2;gapN=10;gap()}
+  else{examState=0;listenMsg="";try{a.currentTime=0}catch(e){}examLock=true;left=TOTAL;sayFrom=TOTAL;start()}}
+const nearEnd=a=>isFinite(a.duration)&&a.duration>1&&a.currentTime>=a.duration-0.3;
+$("aud").addEventListener('play',()=>{const a=$("aud");if(examState===1||examState===3){segDone=false;return}
+  if(examLock&&running){a.pause();toast('考场计时中，录音不能再放（和考场一样）。想再听先点「暂停」或「重新开始」')}});
+$("aud").addEventListener('ended',segEnd);
+$("aud").addEventListener('timeupdate',()=>{if(nearEnd($("aud")))segEnd()});
+$("aud").addEventListener('pause',()=>{if(nearEnd($("aud")))segEnd()});
+setInterval(()=>{const a=$("aud");if((examState===1||examState===3)&&!examPaused&&nearEnd(a))segEnd()},500);
 const _go=go;go=function(i){_go(i);loadAudio()};
 document.addEventListener('click',e=>{const a=e.target.closest('.qa');if(!a)return;e.preventDefault();go(S.findIndex(s=>s[0]===+a.dataset.q));$("answer").hidden=false;window.scrollTo({top:0,behavior:"smooth"})});
 audStat();
