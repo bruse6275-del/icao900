@@ -166,7 +166,7 @@ function startTimer(sec){stopTimer();let left=sec;const el=$('#tm');if(!el)retur
 let view='module';
 const TABS=[['module','模块速通'],['today','今日训练'],['mock','模拟口试'],['hot','高频题'],['pic','看图题'],['chain','追问训练'],['cold','陌生题'],['real','真题频率'],['bank','题库'],['cov','覆盖表'],['tts','朗读设置'],['std','5 级标准']];
 function nav(){$('#nav').innerHTML=TABS.map(([k,l])=>'<button data-nav="'+k+'"'+(view===k?' aria-current="page"':'')+'>'+l+'</button>').join('')}
-function go(v){stopTimer();try{speechSynthesis&&speechSynthesis.cancel()}catch(e){}view=v;nav();R[v]();window.scrollTo(0,0)}
+function go(v){try{localStorage.setItem('opip.view',v)}catch(e){}stopTimer();try{speechSynthesis&&speechSynthesis.cancel()}catch(e){}view=v;nav();R[v]();window.scrollTo(0,0)}
 document.addEventListener('click',e=>{const n=e.target.closest('[data-nav]');if(n)go(n.dataset.nav)});
 const R={};
 /* module */
@@ -400,7 +400,7 @@ R.std=function(){
  '<p class="small muted">来源：<a href="https://ulc.gov.pl/_download/personel_lotniczy/ICAO_LPR/ratingscale.html" style="color:var(--var)">ICAO 分级表</a>，<a href="https://sfl.cafuc.edu.cn/__local/6/17/2C/8ACE741201BB160A1B83A652838_F55AC239_231EB.pdf" style="color:var(--var)">PEPEC 评分准则（中国民航飞行学院）</a>。中文要求是概括，不是官方译文。</p>';
 };
 /* boot */
-nav();R.module();
+{let v='module';try{const x=localStorage.getItem('opip.view');if(x&&R[x])v=x}catch(e){}view=v;nav();try{R[v]()}catch(e){view='module';nav();R.module()}}
 }
 
 const CK='opip.code',ge=document.getElementById('ge');

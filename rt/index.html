@@ -35,7 +35,7 @@ async function unlock(code){const K=await fetch('keys.json',{cache:'no-cache'}).
 function app(Q,M){
 const $=s=>document.querySelector(s),esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))??d}catch(e){return d}},save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
-let R=load('rtp.r',{}),W=load('rtp.w',{}),audio=null,tick=null,base='https://resource.feizhiyi.com/fzy/';
+const VK='rtp.view';let R=load('rtp.r',{}),W=load('rtp.w',{}),audio=null,tick=null,base='https://resource.feizhiyi.com/fzy/';
 const byF={};Q.forEach((q,i)=>(byF[q[2]]=byF[q[2]]||[]).push(i));
 function stop(){if(audio){audio.onerror=null;audio.onended=null;audio.pause();audio=null}clearInterval(tick)}
 const ACACHE='icao-rt-audio',url=q=>base+q[9]+'/'+q[8];
@@ -43,15 +43,16 @@ async function cachedUrl(u){try{const c=await caches.open(ACACHE),r=await c.matc
 async function play(i,done,err){stop();const u=url(Q[i]),a=new Audio();audio=a;a.onended=done;a.onerror=err;a.src=await cachedUrl(u)||u;if(audio===a)a.play().catch(()=>{})}
 const hl=s=>esc(s).replace(/\b(\d[\d.,]*(?:m|L|R)?|cleared|expect|wilco|roger|hold short|holding|behind|after|until|squawk|QNH|affirm|negative|unable|request|runway|heading|PAN PAN|MAYDAY|going around|due)\b/gi,'<mark>$1</mark>');
 function mastered(f){const d=M.D[f]||[];return d.filter(i=>R[i]==1).length}
-function nav(v){stop();document.querySelectorAll('nav .b').forEach(b=>b.classList.toggle('on',b.dataset.v==v))}
+let VIEW='path';const keepView=o=>{VIEW=o.v;try{localStorage.setItem(VK,JSON.stringify(o))}catch(e){}};
+function nav(v){keepView({v});stop();document.querySelectorAll('nav .b').forEach(b=>b.classList.toggle('on',b.dataset.v==v))}
 document.querySelector('nav').onclick=e=>{const v=e.target.dataset.v;if(v)({path,wrong,favs,set,rule,five})[v]()};
 function summary(){const t=Object.values(M.D).flat().length,o=Object.values(M.D).flat().filter(i=>R[i]==1).length;$('#sum').textContent=`83 套 ${Q.length} 轮对话，归成 ${Object.keys(M.F).length} 个句型，精选 ${t} 题。已掌握 ${o} 题，错题 ${Object.keys(W).length} 题，收藏 ${Q.filter((q,i)=>isFav(i)).length} 题。`}
 function path(){nav('path');summary();$('#app').innerHTML=M.G.map((g,n)=>`<div class="grp"><h2>${n+1}. ${g[0]}</h2><p class="sub">${g[1]}</p>`+g[2].map(f=>{const d=M.D[f].length,m=mastered(f);return `<button class="fam" data-f="${f}"><span>${M.F[f][0]}<br><small>83 套出现 ${byF[f].length} 次${byF[f].filter(isFav).length?` · <span class="star">★</span> ${byF[f].filter(isFav).length}`:''}</small></span><span class="${m==d?'done':''}">${m} / ${d}</span></button>`}).join('')+'</div>').join('');
  $('#app').onclick=e=>{const b=e.target.closest('.fam');if(b)fam(b.dataset.f)}}
-function fam(f,opt={}){const F=M.F[f],D=M.D[f],rest=byF[f].filter(i=>!D.includes(i));let mode=opt.mode||'pick';
+function fam(f,opt={}){const F=M.F[f],D=M.D[f],rest=byF[f].filter(i=>!D.includes(i));let mode=opt.mode||'pick';stop();document.querySelectorAll('nav .b').forEach(b=>b.classList.toggle('on',b.dataset.v=='path'));keepView({v:'fam',f,mode,i:opt.start});
  const list=()=>mode=='pick'?D:mode=='all'?D.concat(rest):mode=='arc'?byF[f].filter(isArc):byF[f].filter(isFav);
  $('#app').onclick=null;$('#app').innerHTML=`<button class="b" id="bk">返回路线</button><h2 style="margin-top:12px">${F[0]}</h2><div class="frame">${F[1]}</div><div class="diff"><b>注意区分：</b>${F[2]}</div><div class="row" id="tabs"></div><div class="row grid" id="grid"></div><div class="row"><button class="b" id="vr">显示文字列表</button></div><div class="list" id="ls" hidden></div><div id="run"></div>`;
- const box=$('#run');box._fam=f;
+ const box=$('#run');box._fam=f;box._mode=()=>mode;
  const tabs=()=>{$('#tabs').innerHTML=[['pick','精选',D.length],['all','全部同类',byF[f].length],['fav','只练收藏',byF[f].filter(isFav).length],['arc','收藏库',byF[f].filter(isArc).length]].map(t=>`<button class="b${mode==t[0]?' on':''}" data-m="${t[0]}">${t[1]} ${t[2]}</button>`).join('')};
  const grid=()=>{const L=list();$('#grid').innerHTML=L.map((i,k)=>gbtn(i,k,box._cur===i)).join('');const l=$('#ls');if(!l.hidden)lst()};
  const lst=()=>{$('#ls').innerHTML=list().map((i,k)=>{const q=Q[i];return `<div class="li" data-k="${k}" style="cursor:pointer">${isFav(i)?'<span class="star">★</span> ':''}${esc(q[3])}<br><code>${esc(q[5])}</code> <span class="tip">第 ${q[0]} 套 第 ${q[1]} 轮</span></div>`}).join('')};
@@ -77,7 +78,7 @@ function drill(box,L,k,end,mock){if(k>=L.length)return end();const i=L[k],q=Q[i]
  const reveal=()=>{shown=true;stop();$('#ptx').hidden=false;$('#res').innerHTML=`<p class="a">${hl(q[5])}</p>${q[6]?`<p class="z">${esc(q[6])}</p>`:''}${q[7]?`<p class="n">App 注：${esc(q[7])}</p>`:''}${q[10]?`<p class="fx">App 原答案：${esc(q[10])}<br>修改原因：${esc(q[11])}</p>`:''}<div class="row"><button class="b ok" id="y">答对了</button><button class="b no" id="f">没答对</button><button class="b" id="re">再听一遍</button></div>`;
   $('#re').onclick=()=>play(i,()=>{},()=>{const e=$('#er');if(e)e.hidden=false});
   $('#y').onclick=()=>{mark(i,1);drill(box,L,k+1,end,mock)};$('#f').onclick=()=>{mark(i,0);drill(box,L,k+1,end,mock)}};
- $('#pv').onclick=()=>{stop();drill(box,L,k-1,end,mock)};$('#nq').onclick=()=>{stop();drill(box,L,k+1,end,mock)};box._cur=i;if(box._show)box._show();$('#st').onclick=e=>{const on=togFav(i);e.currentTarget.innerHTML=starL(i);$('#stn').textContent=on?'':'已移入收藏库';e.currentTarget.setAttribute('aria-pressed',on);if(box._fav)box._fav();summary()};{const sm=$('#sm');if(sm)sm.onclick=()=>{stop();fam(q[2],{mode:'all',start:i})}};$('#pl').onclick=pl;$('#tx').onclick=()=>{$('#ptx').hidden=!$('#ptx').hidden};$('#an').onclick=reveal;pl()}
+ $('#pv').onclick=()=>{stop();drill(box,L,k-1,end,mock)};$('#nq').onclick=()=>{stop();drill(box,L,k+1,end,mock)};box._cur=i;if(box._show)box._show();if(box._fam&&VIEW=='fam')keepView({v:'fam',f:box._fam,mode:box._mode&&box._mode(),i});$('#st').onclick=e=>{const on=togFav(i);e.currentTarget.innerHTML=starL(i);$('#stn').textContent=on?'':'已移入收藏库';e.currentTarget.setAttribute('aria-pressed',on);if(box._fav)box._fav();summary()};{const sm=$('#sm');if(sm)sm.onclick=()=>{stop();fam(q[2],{mode:'all',start:i})}};$('#pl').onclick=pl;$('#tx').onclick=()=>{$('#ptx').hidden=!$('#ptx').hidden};$('#an').onclick=reveal;pl()}
 function wrong(){nav('wrong');summary();$('#app').onclick=null;const L=Object.keys(W).map(Number);if(!L.length){$('#app').innerHTML='<p class="sub">还没有错题。练习时点“没答对”的题会出现在这里，答对后自动移出。</p>';return}
  $('#app').innerHTML='<div id="run"></div>';drill($('#run'),L,0,()=>wrong())}
 function set(){nav('set');$('#app').onclick=null;const tags=[...new Set(M.S.flatMap(s=>String(s[2]).split(/[，,]/).map(t=>t.trim()).filter(Boolean)))];
@@ -111,7 +112,7 @@ function mark(i,ok){if(ok){R[i]=1;delete W[i]}else{R[i]=0;W[i]=1}save('rtp.r',R)
 async function audTop(){const e=$('#audTop');if(!e)return;try{const c=await caches.open(ACACHE),k=await c.keys(),h=new Set(k.map(r=>r.url)),n=Q.filter(q=>h.has(url(q))).length;e.textContent=n?`离线语音 ${n} / ${Q.length} 条`:''}catch(x){}}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(()=>{})}catch(x){}
 audTop();
-path();
+(()=>{let o=null;try{o=JSON.parse(localStorage.getItem(VK))}catch(e){}const T={path,wrong,favs,set,rule,five};if(o&&o.v=='fam'&&M.F[o.f])fam(o.f,{mode:o.mode,start:o.i});else if(o&&T[o.v])T[o.v]();else path()})();
 
 }
 const CK='rtp.code',ge=document.getElementById('ge');
