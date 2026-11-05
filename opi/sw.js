@@ -1,5 +1,5 @@
-const C='opip-2';const F=['./','./index.html','./keys.json','./data.enc','./manifest.webmanifest'];
-self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F)).then(()=>self.skipWaiting()))});
+const C='opip-3';const F=['./','./index.html','./keys.json','./data.enc','./manifest.webmanifest'];
+self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C&&k.startsWith('opip-')).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);if(u.origin!==location.origin||!u.pathname.includes('/opi/'))return;
-e.respondWith((async()=>{const hit=await caches.match(e.request,{ignoreSearch:true});const net=fetch(e.request).then(r=>{if(r.ok){const cp=r.clone();caches.open(C).then(c=>c.put(e.request,cp))}else if(hit)return hit;return r});e.waitUntil(net.catch(()=>{}));if(!hit)return net.catch(()=>Response.error());return Promise.race([net.catch(()=>hit),new Promise(res=>setTimeout(()=>res(hit),2500))])})())});
+e.respondWith((async()=>{const hit=await caches.match(u.origin+u.pathname,{ignoreSearch:true});const net=fetch(e.request.url,{cache:'no-cache'}).then(r=>{if(r.ok){const cp=r.clone();caches.open(C).then(c=>c.put(u.origin+u.pathname,cp))}else if(hit)return hit;return r});e.waitUntil(net.catch(()=>{}));if(!hit)return net.catch(()=>Response.error());return Promise.race([net.catch(()=>hit),new Promise(res=>setTimeout(()=>res(hit),2500))])})())});

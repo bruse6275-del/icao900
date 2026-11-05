@@ -11,6 +11,8 @@ async function localVer(){var v='';try{v=localStorage.getItem(VK)||''}catch(e){}
 async function appCache(){var ks=(await caches.keys()).filter(function(k){return /^icao900-\d/.test(k)}).sort();return caches.open(ks.length?ks[ks.length-1]:'icao900-000000000000')}
 function label(v){return v&&v.length>=12?v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12):v}
 try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist().catch(function(){})}catch(e){}
+function showVer(v){var e=document.getElementById('csVer')||document.getElementById('verTag');if(e&&v)e.textContent='当前版本 '+label(v)}
+localVer().then(showVer).catch(function(){});
 window.icaoUpdate=async function(stat){stat=stat||function(){};
  if(!window.caches||!window.AbortController){stat('这个浏览器不支持离线更新，请直接刷新页面');return false}
  if(navigator.onLine===false){stat('设备离线，继续使用本机版本');return false}
@@ -19,13 +21,13 @@ window.icaoUpdate=async function(stat){stat=stat||function(){};
  var ok=found.filter(function(x){return x&&x.v}).sort(function(a,b){return a.v<b.v?1:a.v>b.v?-1:SRC.indexOf(a.s)-SRC.indexOf(b.s)});
  if(!ok.length){stat('连不上 GitHub，继续使用本机版本。换个网络再试');return false}
  var best=ok[0],cur=await localVer();
- if(best.v<=cur){stat('已是最新（'+label(cur)+'）');return false}
- stat('发现新版本 '+label(best.v)+'，正在下载…');
- var got=[];
- for(var i=0;i<FILES.length;i++){var f=FILES[i],src=[best.s].concat(ok.slice(1).filter(function(x){return x.v===best.v}).map(function(x){return x.s})),t=null;
+ stat('正在下载最新文件…');
+ var got=[],same=true,base0=new URL('./',location.href).href;
+ for(var i=0;i<FILES.length;i++){if(FILES[i][0]==='dict.js'&&best.v<=cur)continue;var f=FILES[i],src=[best.s].concat(ok.slice(1).filter(function(x){return x.v===best.v}).map(function(x){return x.s})),t=null;
   for(var j=0;j<src.length&&t===null;j++){try{var x=await get(src[j]+f[0],60000);if(x.length>=f[2]&&(!f[1]||x.indexOf(f[1])>=0))t=x}catch(e){}}
   if(t===null){stat('下载没有完成，已保留本机版本，请稍后再试');return false}
-  got.push([f[0],t]);stat('正在下载… '+(i+1)+' / '+FILES.length)}
+  try{var hit=await caches.match(base0+f[0]);if(!hit||await hit.text()!==t)same=false}catch(e){same=false}got.push([f[0],t]);stat('正在下载… '+(i+1)+' / '+FILES.length)}
+ if(same&&best.v<=cur){stat('已是最新（'+label(best.v)+'）');showVer(best.v);return false}
  var c=await appCache(),base=new URL('./',location.href).href;
  for(var k=0;k<got.length;k++){var res=new Response(got[k][1],{headers:{'Content-Type':type(got[k][0])}});await c.put(base+got[k][0],res.clone());if(got[k][0]==='index.html')await c.put(base,res.clone())}
  try{localStorage.setItem(VK,best.v)}catch(e){}
