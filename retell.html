@@ -75,6 +75,17 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .checks label{display:flex;gap:10px;align-items:flex-start;font-size:14px;cursor:pointer}
 .checks input{margin-top:4px;accent-color:var(--ok)}
 .checks b{color:var(--accent);min-width:3em;display:inline-block}
+#recBtn.recon{background:#c0392b;border-color:#c0392b;color:#fff}
+.recdot{width:10px;height:10px;border-radius:50%;background:#e03b2f;display:inline-block;animation:recb 1s infinite}
+@keyframes recb{50%{opacity:.25}}
+.timer.sm{font-size:16px}
+.lv{display:inline-block;min-width:22px;text-align:center;font-weight:700;border-radius:6px;padding:1px 6px}
+.lv5,.lv6{background:#d7f3e1;color:#14663a}.lv4{background:#fff0cc;color:#8a5a00}.lv3,.lv2,.lv1{background:#fde0dd;color:#9b2a1f}.lv0{color:var(--muted)}
+.rectab{width:100%;min-width:0!important;table-layout:fixed}.rectab th,.rectab td{white-space:normal!important;word-break:break-word;vertical-align:top}.rectab tr>*:first-child{width:3.2em}.rectab tr>*:nth-child(2){width:2.4em}
+.rectab td.lv{display:table-cell;border-radius:0}.recsum{font-size:15px;margin:4px 0 8px}
+.recl{margin:4px 0 8px;padding-left:20px}.recl li{margin:3px 0}
+#reccard h3{font-size:14px;margin:12px 0 4px}
+#recPlay audio{max-width:100%;vertical-align:middle}
 .timer.warn{color:var(--accent)}
 .mstep{margin-top:14px;max-width:80ch}
 .mstep h3{font-size:14px;margin:0 0 6px;color:var(--accent)}
@@ -265,6 +276,22 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
         <button id="btnNext">按计划下一篇 →</button>
       </div>
       <div class="mute" id="srs" style="margin-top:8px"></div>
+    </section>
+
+    <section class="card" id="reccard">
+      <h2>🎙 录音评分 <span class="mute" style="font-weight:400">录下自己的复述，自动估算五项等级</span></h2>
+      <div class="row">
+        <button class="pri" id="recBtn">🎙 开始录音</button>
+        <span class="recdot" id="recDot" hidden></span><span class="timer sm" id="recTime">0:00</span>
+        <label class="mute"><input type="checkbox" id="recAuto" checked> 300 秒一开始就自动录</label>
+        <label class="mute"><input type="checkbox" id="recSr" checked> 实时转文字</label>
+      </div>
+      <p class="mute" id="recMsg" style="margin:6px 0 0">点「考场播放」，听完两遍后会自动开始录音；也可以随时手动点「开始录音」。</p>
+      <p class="mute" id="recSrMsg" style="margin:4px 0 0"></p>
+      <div id="recPlay" hidden style="margin-top:8px"><audio id="recAud" controls></audio> <a id="recDl" class="mute">下载录音</a></div>
+      <textarea id="recTxt" placeholder="转写文字会出现在这里。识别错的词可以改；没有自动转写时，也可以自己把说的内容打进来，再点「按文字重新评分」。" style="margin-top:8px;min-height:90px"></textarea>
+      <div class="row" style="margin-top:6px"><button id="recRe">按文字重新评分</button><button id="recCopy">复制给 Claude 细评</button><span class="mute" id="recHist"></span></div>
+      <div id="recRes" style="margin-top:8px"></div>
     </section>
 
     <details class="card rules" id="rnbcard">
@@ -588,7 +615,7 @@ const CHECKS=[
  ["发音","数字、跑道号、航班号读得清楚（runway three-six right、flight six-two-six）"]
 ];
 function go(i){
-  stop();cur=i;const s=S[i];
+  stop();if(typeof REC!=="undefined"){if(REC.mr)recStop();REC.last=null;REC.pause=null;$("recRes").innerHTML="";$("recTxt").value="";$("recPlay").hidden=true;setTimeout(recHistUI)}cur=i;const s=S[i];
   $("qid").textContent="Q"+s[0];$("qtitle").textContent=s[2];$("qcat").textContent=CATS[s[1]].name;
   $("notes").value="";$("answer").hidden=true;resetTimer();
   $("kw").innerHTML=`<b>第一遍抓</b><span>${s[3]}</span><b>第二遍补</b><span>${s[4]}</span>`+(s[6]?`<b>提示</b><span>${s[6]}</span>`:"");
@@ -619,10 +646,10 @@ function phaseText(){if(listenMsg)return listenMsg;
 function tick(){$("timer").textContent=fmt(Math.max(left,0));$("timer").classList.toggle("warn",left<=60);$("phase").textContent=phaseText()}
 function resetTimer(){clearInterval(tT);running=false;examLock=false;left=TOTAL;sayFrom=TOTAL;listenMsg="";$("timer").textContent=fmt(TOTAL);$("timer").classList.remove("warn");
   $("phase").textContent="点「考场播放」：录音放两遍、中间隔 10 秒，放完自动开始 300 秒（和考场一样）";$("btnPlay").textContent="开始 300 秒";$("btnStop").textContent="暂停"}
-function runTimer(){clearInterval(tT);running=true;tT=setInterval(()=>{left--;tick();if(left<=0){clearInterval(tT);running=false;stopExam();tick()}},1000)}
+function runTimer(){clearInterval(tT);running=true;tT=setInterval(()=>{left--;tick();if(left<=0){clearInterval(tT);running=false;stopExam();tick();if(REC.mr)recStop()}},1000)}
 function start(){$("btnPlay").textContent="重新开始";$("btnStop").textContent="暂停";tick();runTimer()}
 function stop(){clearInterval(tT);running=false;examLock=false}
-$("btnPlay").onclick=()=>{stopExam();examLock=false;left=TOTAL;sayFrom=TOTAL;start()};
+$("btnPlay").onclick=()=>{stopExam();examLock=false;left=TOTAL;sayFrom=TOTAL;start();if($("recAuto").checked&&!REC.mr)recStart()};
 let examPaused=false;
 $("btnStop").onclick=()=>{if(examState){if(examPaused){examPaused=false;resumeExam();$("btnStop").textContent="暂停"}else{examPaused=true;pauseExam();$("btnStop").textContent="继续"}return}
   if(running){stop();$("btnStop").textContent="继续"}else if(left>0&&left<TOTAL){$("btnStop").textContent="暂停";runTimer()}};
@@ -685,7 +712,7 @@ $("btnExam").onclick=()=>{const a=$("aud");if(!a.src)return;stopExam();resetTime
 let segDone=false,examLock=false;
 function segEnd(){if(segDone||!(examState===1||examState===3))return;segDone=true;const a=$("aud");try{a.pause()}catch(e){}
   if(examState===1){examState=2;gapN=10;gap()}
-  else{examState=0;listenMsg="";try{a.currentTime=0}catch(e){}examLock=true;left=TOTAL;sayFrom=TOTAL;start()}}
+  else{examState=0;listenMsg="";try{a.currentTime=0}catch(e){}examLock=true;left=TOTAL;sayFrom=TOTAL;start();if($("recAuto").checked)recStart()}}
 const nearEnd=a=>isFinite(a.duration)&&a.duration>1&&a.currentTime>=a.duration-0.3;
 $("aud").addEventListener('play',()=>{const a=$("aud");if(examState===1||examState===3){segDone=false;return}
   if(examLock&&running){a.pause();toast('考场计时中，录音不能再放（和考场一样）。想再听先点「暂停」或「重新开始」')}});
@@ -789,5 +816,134 @@ $("rnbList").addEventListener('click',e=>{const d=e.target.closest('[data-del]')
 renderRNB();
 const _go2=go;go=function(i){_go2(i);$("nbbar").hidden=true;nbHere()};
 go(0);
+/* ===== 录音评分 ===== */
+var REC={mr:null,stream:null,chunks:[],blob:null,url:"",t0:0,timer:null,sr:null,srOn:false,finals:[],interim:"",mime:""};
+const RECKEY="retell.rec.v1";
+const SRC=window.SpeechRecognition||window.webkitSpeechRecognition;
+function recHist(){try{return JSON.parse(localStorage.getItem(RECKEY)||"{}")}catch(e){return {}}}
+function recSave(q,r){try{const h=recHist();h[q]=(h[q]||[]).filter(x=>x.id!==r.id);h[q].push(r);h[q]=h[q].slice(-10);localStorage.setItem(RECKEY,JSON.stringify(h))}catch(e){}}
+const recEsc=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+function recUI(state){const on=state==="rec";$("recBtn").textContent=on?"■ 停止并评分":"🎙 开始录音";$("recBtn").classList.toggle("recon",on);
+  $("recDot").hidden=!on}
+function recTick(){const s=Math.round((Date.now()-REC.t0)/1000);$("recTime").textContent=fmt(s)}
+async function recStart(){
+  if(REC.mr)return;
+  if(!navigator.mediaDevices||!window.MediaRecorder){$("recMsg").textContent="这个浏览器不支持录音。iPhone 请用 Safari 打开，安卓请用 Chrome。";return}
+  try{REC.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}})}
+  catch(e){$("recMsg").textContent="没有拿到麦克风权限：请在浏览器设置里允许这个网站使用麦克风。";return}
+  REC.mime=["audio/mp4","audio/webm;codecs=opus","audio/webm",""].find(m=>!m||MediaRecorder.isTypeSupported(m));
+  REC.chunks=[];REC.mr=new MediaRecorder(REC.stream,REC.mime?{mimeType:REC.mime}:undefined);
+  REC.mr.ondataavailable=e=>{if(e.data&&e.data.size)REC.chunks.push(e.data)};
+  REC.mr.onstop=recDone;REC.mr.start(1000);REC.t0=Date.now();REC.timer=setInterval(recTick,500);recTick();recUI("rec");
+  $("recRes").innerHTML="";$("recMsg").textContent="录音中……按平时考试的样子完整复述一遍，说完点「停止并评分」。";
+  REC.finals=[];REC.interim="";REC.id=0;$("recTxt").value="";
+  if(SRC&&$("recSr").checked)recSrStart();else if(!SRC)$("recSrMsg").textContent="这个浏览器没有实时转文字功能，只能评停顿和语速。可以把录音发给 Claude 做完整评分。";
+}
+function recSrStart(){try{const r=new SRC();REC.sr=r;REC.srOn=true;r.lang="en-US";r.continuous=true;r.interimResults=true;
+  r.onresult=e=>{let it="";for(let i=e.resultIndex;i<e.results.length;i++){const x=e.results[i];if(x.isFinal)REC.finals.push(x[0].transcript.trim());else it+=x[0].transcript}
+    REC.interim=it;$("recTxt").value=(REC.finals.join(" ")+" "+it).trim()};
+  r.onerror=e=>{$("recSrMsg").textContent=({"not-allowed":"实时转文字被拒绝了（浏览器不允许语音识别）。","network":"实时转文字需要联网，当前网络连不上识别服务。","audio-capture":"麦克风被录音占用，没法同时转文字。"}[e.error]||"实时转文字出错："+e.error)+" 录音不受影响。"};
+  r.onend=()=>{if(REC.srOn&&REC.mr){try{r.start()}catch(e){}}};
+  r.start();$("recSrMsg").textContent="实时转文字中（识别结果会显示在下面的文字框里）";}catch(e){$("recSrMsg").textContent="实时转文字没能启动，只评停顿和语速。"}}
+function recStop(){if(!REC.mr)return;REC.srOn=false;try{REC.sr&&REC.sr.stop()}catch(e){}
+  clearInterval(REC.timer);try{REC.mr.stop()}catch(e){recDone()}REC.stream&&REC.stream.getTracks().forEach(t=>t.stop());recUI("idle")}
+async function recDone(){const mr=REC.mr;REC.mr=null;if(!REC.chunks.length){$("recMsg").textContent="没录到声音。";return}
+  REC.blob=new Blob(REC.chunks,{type:(mr&&mr.mimeType)||REC.mime||"audio/mp4"});
+  if(REC.url)URL.revokeObjectURL(REC.url);REC.url=URL.createObjectURL(REC.blob);
+  $("recAud").src=REC.url;$("recPlay").hidden=false;
+  const ext=/webm/.test(REC.blob.type)?"webm":"m4a";$("recDl").href=REC.url;$("recDl").download=`复述Q${S[cur][0]}_${new Date().toISOString().slice(5,16).replace(/[-T:]/g,"")}.${ext}`;
+  if(REC.finals.length||REC.interim)$("recTxt").value=(REC.finals.join(" ")+" "+REC.interim).trim();
+  $("recMsg").textContent="分析中……";
+  REC.pause=await recPauses(REC.blob);recScore();}
+/* 停顿：解码录音，按 50ms 计算音量，自适应噪声底 */
+async function recPauses(blob){try{const buf=await blob.arrayBuffer();const AC=window.OfflineAudioContext||window.webkitOfflineAudioContext;
+  const ctx=new AC(1,1,16000);const ab=await new Promise((ok,no)=>{const p=ctx.decodeAudioData(buf,ok,no);if(p&&p.then)p.then(ok,no)});
+  const d=ab.getChannelData(0),sr=ab.sampleRate,hop=Math.round(sr*0.05),db=[];
+  for(let i=0;i+hop<=d.length;i+=hop){let s=0;for(let j=i;j<i+hop;j++)s+=d[j]*d[j];db.push(10*Math.log10(s/hop+1e-12))}
+  const so=[...db].sort((a,b)=>a-b),floor=so[Math.floor(so.length*0.15)],peak=so[Math.floor(so.length*0.95)];
+  const th=Math.max(floor+(peak-floor)*0.3,floor+8);const sp=db.map(v=>v>th);
+  const a=sp.indexOf(true),b=sp.lastIndexOf(true);if(a<0)return {dur:ab.duration,speak:0,pauses:[]};
+  const pauses=[];let run=0;for(let i=a;i<=b;i++){if(!sp[i])run++;else{if(run*0.05>=0.6)pauses.push({at:(i-run)*0.05,len:run*0.05});run=0}}
+  const span=(b-a+1)*0.05,sil=pauses.reduce((x,p)=>x+p.len,0);
+  return {dur:ab.duration,start:a*0.05,span,sil,pauses}}catch(e){return null}}
+/* 文字分析 */
+const NUMW={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,niner:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
+function numify(t){const w=t.toLowerCase().replace(/(\d),(\d{3})/g,"$1$2").replace(/-/g," ").split(/\s+/),out=[];let i=0;
+  while(i<w.length){const x=w[i].replace(/[^a-z0-9]/g,"");
+    if(x in NUMW||((x==="hundred"||x==="thousand")&&out.length)){let j=i,seq=[];while(j<w.length){const y=w[j].replace(/[^a-z0-9]/g,"");if(y in NUMW||y==="hundred"||y==="thousand"||(y==="and"&&seq.length&&j+1<w.length&&(w[j+1].replace(/[^a-z]/g,"") in NUMW)))seq.push(y);else break;j++}
+      const digs=seq.filter(y=>y!=="and");
+      if(digs.length>1&&digs.every(y=>y in NUMW&&NUMW[y]<10))out.push(digs.map(y=>NUMW[y]).join(""));
+      else{let tot=0,c=0;for(const y of digs){if(y==="hundred")c=(c||1)*100;else if(y==="thousand"){tot+=(c||1)*1000;c=0}else c+=NUMW[y]}out.push(String(tot+c))}
+      i=j}else{out.push(w[i]);i++}}
+  return out.join(" ")}
+const RSTOP=new Set("a an the and or but so to of in on at for with by from as is are was were be been being it its this that these those there their they them he him his she her we our i you your my me who which what when while then than into onto over after before about also very just only not no did do does had has have will would could should can may might up down out off all some any each other another such one two story passage happened".split(" "));
+const recStem=w=>{let x=w.toLowerCase().replace(/[^a-z0-9]/g,"");if(!x)return "";if(/^\d+$/.test(x))return x;try{x=lem(x)}catch(e){}return x.length>5?x.slice(0,5):x};
+function recToks(t){return numify(t).split(/\s+/).map(recStem).filter(x=>x&&!RSTOP.has(x)&&(x.length>=3||/^\d+$/.test(x)))}
+function recPoints(s){const m=MOD(s).replace(/\{\{|\}\}/g,"").replace(/^This (story|passage) is about /,"");
+  return m.split(/(?<=[.!?])\s+(?=[A-Z"])/).map(x=>({s:x,k:[...new Set(recToks(x))]})).filter(p=>p.k.length)}
+const GRAM=[
+  [/\b(was|were|is|are|been|be)\s+(died|collided|happened|occurred|arrived|disappeared|crashed|departed|landed|lasted)\b/gi,"不及物动词不能用被动：直接说 died / collided / happened / crashed"],
+  [/\bcleared\s+(taxi|take ?off|land|push|cross|line)\b/gi,"cleared 后面要加 to（cleared to taxi / cleared to land）或 for（cleared for takeoff）"],
+  [/\b(two|both|the|three|all)\s+(aircraft|planes|pilots|passengers|people|crew members)\s+was\b/gi,"复数主语用 were"],
+  [/\b(people|passengers|pilots|crew members)\s+(was|is)\b/gi,"复数主语用 were"],
+  [/\bin\s+(a\s+)?(foggy|rainy|snowy|windy|sunny|cloudy)\s+(day|night|morning|afternoon)\b/gi,"表示某一天用 on：on a foggy day"],
+  [/\b(didn't|did not|doesn't|don't|can't|couldn't|wasn't able to)\s+\w+ed\b/gi,"didn't / couldn't 后面用动词原形"],
+  [/\b(although|though)\b[^.]*\bbut\b/gi,"although 和 but 不能同时用"],
+  [/\bbecause\b[^.,]*,?\s*so\b/gi,"because 和 so 不能同时用"],
+  [/\bmore\s+\w+er\b/gi,"比较级重复：more + -er"],
+  [/\b(gives|tells|says|enters|crosses|turns|starts|asks|takes|makes|decides|reports|requests|lands|crashes|sees|finds|goes|comes|becomes|tries|wants|needs|knows|thinks)\b/gi,"讲过去的事全程用过去时（gave / entered / crossed …）"],
+];
+function recScore(){const s=S[cur],txt=$("recTxt").value.trim(),P=REC.pause,R=[];
+  const words=txt?numify(txt).split(/\s+/).filter(w=>/[a-z0-9]/i.test(w)):[];
+  const nw=words.length;
+  // 理解：按例文信息点覆盖
+  let cov=null,miss=[],missNum=[];
+  if(nw>=10){const have=new Set(recToks(txt));const pts=recPoints(s);let got=0;
+    for(const p of pts){const h=p.k.filter(k=>have.has(k)).length;if(h/p.k.length>=0.45)got++;else miss.push(p.s)}
+    cov=got/pts.length;
+    const nums=[...new Set((MOD(s).replace(/(\d),(\d{3})/g,"$1$2").match(/\d+(\.\d+)?/g)||[]))];
+    const hn=new Set((numify(txt).replace(/(\d),(\d{3})/g,"$1$2").match(/\d+(\.\d+)?/g)||[]));missNum=nums.filter(n=>!hn.has(n))}
+  // 结构：语法问题
+  const gram=[];if(txt){for(const [re,why] of GRAM){const m=txt.match(re);if(m)gram.push({hit:[...new Set(m.map(x=>x.toLowerCase()))].slice(0,3).join(" / "),why})}}
+  const gErr=gram.reduce((a,g)=>a+g.hit.split(" / ").length,0);
+  const cx=(txt.match(/\b(while|when|because|which|who|by the time|so that|although|after|before|as a result|instead of|if|until|would have|had already)\b/gi)||[]).length;
+  // 词汇
+  const cont=words.map(recStem).filter(x=>x&&!RSTOP.has(x)&&x.length>=3);const ttr=cont.length?new Set(cont).size/cont.length:0;
+  const conn=(txt.match(/\b(then|after that|as a result|however|in the end|finally|luckily|unfortunately|at the same time|meanwhile|so)\b/gi)||[]).length;
+  // 流利
+  const span=P&&P.span?P.span:null;let wpm=span&&nw?Math.round(nw/(span/60)):null;if(wpm>200)wpm=null;
+  const long=P?P.pauses.filter(p=>p.len>=2).length:null;const silR=P&&P.span?P.sil/P.span:null;
+  const lv={};
+  lv.c=cov==null?null:cov>=0.8?5:cov>=0.6?4:cov>=0.4?3:2;
+  lv.s=!txt?null:(gErr/Math.max(nw,1)*100<=1.5&&(cx>=2||(cx>=1&&nw>=80)))?5:(gErr/Math.max(nw,1)*100<=6)?4:3;
+  lv.v=!txt?null:(nw<50?3:(ttr>=0.55&&conn>=3)?5:4);
+  if(P&&P.span){let f=5;if(silR>0.25||long>1||(wpm&&wpm<90))f=4;if(silR>0.4||long>4||(wpm&&wpm<60))f=3;lv.f=f}else lv.f=null;
+  const got=Object.values(lv).filter(x=>x!=null);const overall=got.length?Math.min(...got):null;
+  const row=(k,name,v,why)=>`<tr><th>${name}</th><td class="lv lv${v||0}">${v==null?"—":v}</td><td>${why}</td></tr>`;
+  let h=`<div class="recsum">估算：<b class="lv lv${overall||0}">${overall==null?"—":overall+" 级"}</b> <span class="mute">（ICAO 取各项最低分；发音需要人听，这里不打分）</span></div><div class="tblwrap"><table class="cmp rectab"><tr><th>项目</th><th>级</th><th>依据</th></tr>`;
+  h+=row("c","理解",lv.c,cov==null?"没有文字，评不了。转文字失败时，可以自己把复述内容打进下面的文字框，或把录音发给 Claude。":`例文信息点覆盖 ${Math.round(cov*100)}%（≥80% 约 5 级）`+(missNum.length?`；没听到的数字：${missNum.map(recEsc).join("、")}`:""));
+  h+=row("s","结构",lv.s,!txt?"—":`${nw} 词里发现 ${gErr} 处常见语法错误；用了 ${cx} 个从句/连接结构（while / when / because / which …）`);
+  h+=row("v","词汇",lv.v,!txt?"—":`${nw} 词，用词重复度 ${Math.round((1-ttr)*100)}%；连接词 ${conn} 个`);
+  h+=row("f","流利",lv.f,!P?(REC.blob?"录音解码失败，评不了停顿。":"没有录音，只按文字评了前三项。"):`有效时长 ${Math.round(P.span)} 秒，停顿占 ${Math.round(silR*100)}%，2 秒以上长停顿 ${long} 次`+(wpm?`，语速约每分钟 ${wpm} 词`:"")+`（5 级大约要：停顿 ≤25%，长停顿 ≤1 次，含停顿每分钟 ≥90 词）`);
+  h+=`<tr><th>发音</th><td class="lv lv0">—</td><td>需要人听。转出来的文字里如果关键词错得离谱（比如 Cessna、collided、engine 变成别的词），通常说明那个词读得不清楚。</td></tr></table></div>`;
+  if(gram.length)h+=`<h3>语法问题</h3><ul class="recl">${gram.map(g=>`<li><code>${recEsc(g.hit)}</code> → ${recEsc(g.why)}</li>`).join("")}</ul>`;
+  if(miss.length)h+=`<h3>可能漏掉或没说清的信息点</h3><ul class="recl">${miss.map(x=>`<li>${recEsc(x)}</li>`).join("")}</ul>`;
+  if(P&&P.pauses.some(p=>p.len>=2))h+=`<h3>长停顿出现在</h3><p class="mute">${P.pauses.filter(p=>p.len>=2).map(p=>`${Math.round(p.at)} 秒处停 ${p.len.toFixed(1)} 秒`).join("；")}。回放听听那里在想什么，多半是下一句的开头词没想好。</p>`;
+  h+=`<p class="mute">自动评分只是估算：看信息点、常见语法错误、停顿和语速，不能代替考官。想要逐句点评，点「复制给 Claude」，或直接把录音文件发给 Claude。</p>`;
+  $("recRes").innerHTML=h;$("recMsg").textContent="";
+  REC.last={q:s[0],t:Date.now(),lv,overall,cov,wpm,long,silR,nw,txt,gram};
+  if(!REC.id)REC.id=Date.now();if(overall!=null)recSave(s[0],{id:REC.id,t:Date.now(),o:overall,c:lv.c,s:lv.s,v:lv.v,f:lv.f});recHistUI();}
+function recHistUI(){const h=(recHist()[S[cur][0]]||[]).slice(-6).reverse();
+  $("recHist").innerHTML=h.length?"这篇最近的估算："+h.map(r=>`<span class="lv lv${r.o}">${r.o}</span><span class="mute">${new Date(r.t).toLocaleDateString("zh-CN",{month:"numeric",day:"numeric"})}</span>`).join(" "):""}
+function recCopy(){const L=REC.last;if(!L){toast("先录一遍");return}
+  const P=REC.pause;const t=`请按 ICAO 5 级标准评我的故事复述（Q${L.q}）。\n转写文字：${L.txt||"（无）"}\n停顿：${P?`有效 ${Math.round(P.span)} 秒，停顿占 ${Math.round((P.sil/P.span)*100)}%，2 秒以上 ${P.pauses.filter(p=>p.len>=2).length} 次`:"无"}；语速：${L.wpm||"?"} 词/分`;
+  (navigator.clipboard?navigator.clipboard.writeText(t):Promise.reject()).then(()=>toast("已复制，粘贴给 Claude 即可"),()=>{$("recTxt").select();toast("复制失败，请手动复制文字框")})}
+$("recBtn").onclick=()=>REC.mr?recStop():recStart();
+$("recRe").onclick=()=>{if(!$("recTxt").value.trim()&&!REC.pause){toast("先录音或输入文字");return}recScore()};
+$("recCopy").onclick=recCopy;
+if(!SRC){$("recSr").checked=false;$("recSr").disabled=true}
+try{$("recAuto").checked=localStorage.getItem("retell.recAuto")!=="0"}catch(e){}
+$("recAuto").onchange=()=>{try{localStorage.setItem("retell.recAuto",$("recAuto").checked?"1":"0")}catch(e){}};
+
 </script>
 <script>if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(function(){})}</script></body></html>
