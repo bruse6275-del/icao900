@@ -119,6 +119,11 @@ mark.eg{background:#fde0dd;color:#9b2a1f;border-bottom:2px solid #d0453a}mark.er
 .nbtip{margin:6px 0 0}
 .rnbg{margin-top:14px}
 .rnbg h3{font-size:13px;color:var(--accent);margin:0 0 6px;font-weight:600}
+details.rnbg>summary{display:flex;justify-content:space-between;gap:8px;align-items:center;cursor:pointer;list-style:none;font-size:13px;font-weight:600;color:var(--accent);padding:6px 0;border-bottom:1px solid var(--line)}
+details.rnbg>summary::-webkit-details-marker{display:none}
+details.rnbg>summary span:first-child::before{content:"▸ ";display:inline-block;width:1.1em}
+details.rnbg[open]>summary span:first-child::before{content:"▾ "}
+details.rnbg>summary .n{color:var(--muted);font-weight:400;white-space:nowrap}
 .rnbi{display:grid;grid-template-columns:auto 1fr auto;gap:2px 10px;align-items:baseline;padding:8px 0;border-bottom:1px solid var(--line)}
 .rnbi .w{font:600 15px var(--mono)}
 .rnbi .z{color:var(--ink)}
@@ -305,6 +310,8 @@ mark.eg{background:#fde0dd;color:#9b2a1f;border-bottom:2px solid #d0453a}mark.er
         <label class="mute" for="rnbSort">排序</label>
         <select id="rnbSort"><option value="q">按题号</option><option value="t">最近加入</option><option value="a">按字母</option></select>
         <button id="rnbEdit">编辑</button>
+        <button id="rnbOpen">全部展开</button>
+        <button id="rnbFold">全部收起</button>
       </div>
       <div id="rnbList"></div>
     </details>
@@ -788,9 +795,14 @@ function renderRNB(){const nb=nbLoad();const it=Object.entries(nb);$("rnbCount")
     `<span class="ctx">${escH(v.n||'')}${(v.q||[]).map(q=>`<a href="#" class="qa" data-q="${q}">Q${q}</a>`).join('')}</span></div>`};
   let html='';
   if(mode==='q'){const G={};for(const e of it){const q=Math.min(...(e[1].q||[999]));(G[q]=G[q]||[]).push(e)}
-    for(const q of Object.keys(G).map(Number).sort((a,b)=>a-b)){const s=S.find(x=>x[0]===q);html+=`<div class="rnbg"><h3>Q${q} ${s?escH(s[2]):''}</h3>${G[q].sort((a,b)=>a[1].w.localeCompare(b[1].w)).map(row).join('')}</div>`}}
+    for(const q of Object.keys(G).map(Number).sort((a,b)=>a-b)){const s=S.find(x=>x[0]===q);html+=`<details class="rnbg" data-g="${q}"${rnbFoldGet().has(q)?'':' open'}><summary><span>Q${q} ${s?escH(s[2]):''}</span><span class="n">${G[q].length} 个</span></summary>${G[q].sort((a,b)=>a[1].w.localeCompare(b[1].w)).map(row).join('')}</details>`}}
   else{const L=it.sort(mode==='t'?(a,b)=>(b[1].t||0)-(a[1].t||0):(a,b)=>a[1].w.localeCompare(b[1].w,'en',{sensitivity:'base'}));html='<div class="rnbg">'+L.map(row).join('')+'</div>'}
-  $("rnbList").innerHTML=html}
+  $("rnbList").innerHTML=html;$("rnbOpen").hidden=$("rnbFold").hidden=mode!=='q'}
+function rnbFoldGet(){try{return new Set(JSON.parse(localStorage.getItem('retell.nbfold')||'[]'))}catch(e){return new Set()}}
+function rnbFoldSet(s){try{localStorage.setItem('retell.nbfold',JSON.stringify([...s]))}catch(e){}}
+$("rnbList").addEventListener('toggle',e=>{const d=e.target;if(!d.matches||!d.matches('details.rnbg'))return;const s=rnbFoldGet(),q=+d.dataset.g;d.open?s.delete(q):s.add(q);rnbFoldSet(s)},true);
+$("rnbOpen").onclick=()=>{rnbFoldSet(new Set());document.querySelectorAll('#rnbList details.rnbg').forEach(d=>d.open=true)};
+$("rnbFold").onclick=()=>{const s=new Set();document.querySelectorAll('#rnbList details.rnbg').forEach(d=>{d.open=false;s.add(+d.dataset.g)});rnbFoldSet(s)};
 function nbCheckSel(){const s=window.getSelection();if(!s||s.isCollapsed){return}
   const n=s.anchorNode&&(s.anchorNode.nodeType===1?s.anchorNode:s.anchorNode.parentElement);
   if(!n||!n.closest||!n.closest('#model,#orig'))return;
