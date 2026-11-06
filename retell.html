@@ -83,7 +83,11 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .lv5,.lv6{background:#d7f3e1;color:#14663a}.lv4{background:#fff0cc;color:#8a5a00}.lv3,.lv2,.lv1{background:#fde0dd;color:#9b2a1f}.lv0{color:var(--muted)}
 .rectab{width:100%;min-width:0!important;table-layout:fixed}.rectab th,.rectab td{white-space:normal!important;word-break:break-word;vertical-align:top}.rectab tr>*:first-child{width:3.2em}.rectab tr>*:nth-child(2){width:2.4em}
 .rectab td.lv{display:table-cell;border-radius:0}.recsum{font-size:15px;margin:4px 0 8px}
-.recl{margin:4px 0 8px;padding-left:20px}.recl li{margin:3px 0}
+.recl{margin:4px 0 8px;padding-left:22px}
+.recann{background:var(--soft);border-radius:8px;padding:10px 12px;line-height:1.9;margin:4px 0}
+mark.eg{background:#fde0dd;color:#9b2a1f;border-bottom:2px solid #d0453a}mark.er{background:#ffe9c7;color:#8a5a00}mark.ef{background:#e7e9ec;color:#5d6b7a;text-decoration:line-through}
+#reccard ins{text-decoration:none;background:#d7f3e1;color:#14663a;border-radius:3px;padding:0 2px}
+.recann sup{color:#b42318;font-size:10px;margin-left:1px}.recleg mark{padding:0 4px;border-radius:3px}.recl li{margin:3px 0}
 #reccard h3{font-size:14px;margin:12px 0 4px}
 #recPlay audio{max-width:100%;vertical-align:middle}
 .timer.warn{color:var(--accent)}
@@ -881,18 +885,34 @@ const recStem=w=>{let x=w.toLowerCase().replace(/[^a-z0-9]/g,"");if(!x)return ""
 function recToks(t){return numify(t).split(/\s+/).map(recStem).filter(x=>x&&!RSTOP.has(x)&&(x.length>=3||/^\d+$/.test(x)))}
 function recPoints(s){const m=MOD(s).replace(/\{\{|\}\}/g,"").replace(/^This (story|passage) is about /,"");
   return m.split(/(?<=[.!?])\s+(?=[A-Z"])/).map(x=>({s:x,k:[...new Set(recToks(x))]})).filter(p=>p.k.length)}
+const PAST={gives:"gave",tells:"told",says:"said",enters:"entered",crosses:"crossed",turns:"turned",starts:"started",asks:"asked",takes:"took",makes:"made",decides:"decided",reports:"reported",requests:"requested",lands:"landed",crashes:"crashed",sees:"saw",finds:"found",goes:"went",comes:"came",becomes:"became",tries:"tried",wants:"wanted",needs:"needed",knows:"knew",thinks:"thought",give:"gave",tell:"told",enter:"entered",cross:"crossed"};
+const keepCase=(o,n)=>/^[A-Z]/.test(o)?n[0].toUpperCase()+n.slice(1):n;
+/* [正则, 类型, 说明, 改法(匹配串, 分组...)] */
 const GRAM=[
-  [/\b(was|were|is|are|been|be)\s+(died|collided|happened|occurred|arrived|disappeared|crashed|departed|landed|lasted)\b/gi,"不及物动词不能用被动：直接说 died / collided / happened / crashed"],
-  [/\bcleared\s+(taxi|take ?off|land|push|cross|line)\b/gi,"cleared 后面要加 to（cleared to taxi / cleared to land）或 for（cleared for takeoff）"],
-  [/\b(two|both|the|three|all)\s+(aircraft|planes|pilots|passengers|people|crew members)\s+was\b/gi,"复数主语用 were"],
-  [/\b(people|passengers|pilots|crew members)\s+(was|is)\b/gi,"复数主语用 were"],
-  [/\bin\s+(a\s+)?(foggy|rainy|snowy|windy|sunny|cloudy)\s+(day|night|morning|afternoon)\b/gi,"表示某一天用 on：on a foggy day"],
-  [/\b(didn't|did not|doesn't|don't|can't|couldn't|wasn't able to)\s+\w+ed\b/gi,"didn't / couldn't 后面用动词原形"],
-  [/\b(although|though)\b[^.]*\bbut\b/gi,"although 和 but 不能同时用"],
-  [/\bbecause\b[^.,]*,?\s*so\b/gi,"because 和 so 不能同时用"],
-  [/\bmore\s+\w+er\b/gi,"比较级重复：more + -er"],
-  [/\b(gives|tells|says|enters|crosses|turns|starts|asks|takes|makes|decides|reports|requests|lands|crashes|sees|finds|goes|comes|becomes|tries|wants|needs|knows|thinks)\b/gi,"讲过去的事全程用过去时（gave / entered / crossed …）"],
+  [/\b(was|were|is|are|been|be)\s+(died|collided|happened|occurred|arrived|disappeared|crashed|departed|lasted)\b/gi,"g","不及物动词不能用被动",(m,a,v)=>v],
+  [/\bcleared\s+(taxi|land|push|cross|line)\b/gi,"g","cleared 后面要加 to",(m,v)=>"cleared to "+v],
+  [/\bcleared\s+(take ?off)\b/gi,"g","放行起飞用 cleared for takeoff",()=>"cleared for takeoff"],
+  [/\b(two|both|the|three|all)\s+(aircraft|planes|pilots|passengers|people|crew members)\s+was\b/gi,"g","复数主语用 were",(m,a,b)=>`${a} ${b} were`],
+  [/\b(people|passengers|pilots)\s+(was|is)\b/gi,"g","复数主语用 were",(m,a)=>a+" were"],
+  [/\bin\s+(a\s+)?(foggy|rainy|snowy|windy|sunny|cloudy)\s+(day|night|morning|afternoon)\b/gi,"g","某一天用 on a …",(m,a,b,c)=>`on a ${b} ${c}`],
+  [/\b(didn't|did not|couldn't|could not|can't|wasn't able to)\s+(\w+?)ed\b/gi,"g","didn't / couldn't 后面用动词原形",(m,a,v)=>`${a} ${v.replace(/i$/,"y")}`],
+  [/\b(although|though)\b([^.]*?)\bbut\b/gi,"g","although 和 but 不能同时用，删掉 but",(m,a,mid)=>`${a}${mid}`.replace(/,?\s*$/,",")],
+  [/\bbecause\b([^.,]*?),?\s*so\b/gi,"g","because 和 so 不能同时用，删掉 so",(m,mid)=>`because${mid},`],
+  [/\b(accident|incident|collision|crash|thing|event)\s+((?:in|on|at)\s+[\w ]{1,20}?\s+)?happened\b/gi,"g","名词后接 happened 要用 that 连接",(m,n,mid)=>`${n} ${(mid||"")}that happened`.replace(/\s+/g," ")],
+  [/\bmore\s+(\w+er)\b/gi,"g","比较级重复，去掉 more",(m,a)=>a],
+  [/\b(gives|tells|says|enters|crosses|turns|starts|asks|takes|makes|decides|reports|requests|lands|crashes|sees|finds|goes|comes|becomes|tries|wants|needs|knows|thinks)\b/gi,"g","讲过去的事全程用过去时",m=>keepCase(m,PAST[m.toLowerCase()]||m)],
+  [/\b(told|asked|instructed)\s+(the pilot|the crew|him|them|the aircraft)\s+(continue|hold|turn|climb|descend|go|stop|contact|taxi|land|divert|return)\b/gi,"g","told sb 后面要加 to",(m,a,b,c)=>`${a} ${b} to ${c}`],
+  [/\b(\w+(?:\s+\w+){0,3})(?:,?\s+\1)+\b/gi,"r","重复：考场上直接往下说",(m,a)=>a],
+  [/\b(uh+|um+|er+m?|ah+|eh+|hmm+)\b[,.]?\s*/gi,"f","填充词",()=>""],
 ];
+/* 找出所有错误位置（不重叠） */
+function recMarks(txt){const L=[];for(const [re,type,why,fix] of GRAM){re.lastIndex=0;let m;while((m=re.exec(txt))){
+    if(type==="r"&&!/[a-z]/i.test(m[1]))continue;
+    const s=m.index,e=s+m[0].length;if(!L.some(x=>s<x.e&&e>x.s))L.push({s,e,type,why,old:m[0],fix:fix(...m)});if(m[0].length===0)re.lastIndex++}}
+  return L.sort((a,b)=>a.s-b.s)}
+function recAnnot(txt,L){let o="",p=0,cor="",q=0;L.forEach((x,i)=>{o+=recEsc(txt.slice(p,x.s))+`<mark class="e${x.type}">${recEsc(x.old)}</mark><sup>${i+1}</sup>`;p=x.e;
+    cor+=recEsc(txt.slice(q,x.s))+(x.fix?`<ins>${recEsc(x.fix)}</ins>`:"");q=x.e});
+  return {ann:o+recEsc(txt.slice(p)),cor:(cor+recEsc(txt.slice(q))).replace(/\s{2,}/g," ")}}
 function recScore(){const s=S[cur],txt=$("recTxt").value.trim(),P=REC.pause,R=[];
   const words=txt?numify(txt).split(/\s+/).filter(w=>/[a-z0-9]/i.test(w)):[];
   const nw=words.length;
@@ -904,8 +924,7 @@ function recScore(){const s=S[cur],txt=$("recTxt").value.trim(),P=REC.pause,R=[]
     const nums=[...new Set((MOD(s).replace(/(\d),(\d{3})/g,"$1$2").match(/\d+(\.\d+)?/g)||[]))];
     const hn=new Set((numify(txt).replace(/(\d),(\d{3})/g,"$1$2").match(/\d+(\.\d+)?/g)||[]));missNum=nums.filter(n=>!hn.has(n))}
   // 结构：语法问题
-  const gram=[];if(txt){for(const [re,why] of GRAM){const m=txt.match(re);if(m)gram.push({hit:[...new Set(m.map(x=>x.toLowerCase()))].slice(0,3).join(" / "),why})}}
-  const gErr=gram.reduce((a,g)=>a+g.hit.split(" / ").length,0);
+  const marks=txt?recMarks(txt):[];const gErr=marks.filter(x=>x.type==="g").length;const nRep=marks.filter(x=>x.type!=="g").length;
   const cx=(txt.match(/\b(while|when|because|which|who|by the time|so that|although|after|before|as a result|instead of|if|until|would have|had already)\b/gi)||[]).length;
   // 词汇
   const cont=words.map(recStem).filter(x=>x&&!RSTOP.has(x)&&x.length>=3);const ttr=cont.length?new Set(cont).size/cont.length:0;
@@ -922,16 +941,20 @@ function recScore(){const s=S[cur],txt=$("recTxt").value.trim(),P=REC.pause,R=[]
   const row=(k,name,v,why)=>`<tr><th>${name}</th><td class="lv lv${v||0}">${v==null?"—":v}</td><td>${why}</td></tr>`;
   let h=`<div class="recsum">估算：<b class="lv lv${overall||0}">${overall==null?"—":overall+" 级"}</b> <span class="mute">（ICAO 取各项最低分；发音需要人听，这里不打分）</span></div><div class="tblwrap"><table class="cmp rectab"><tr><th>项目</th><th>级</th><th>依据</th></tr>`;
   h+=row("c","理解",lv.c,cov==null?"没有文字，评不了。转文字失败时，可以自己把复述内容打进下面的文字框，或把录音发给 Claude。":`例文信息点覆盖 ${Math.round(cov*100)}%（≥80% 约 5 级）`+(missNum.length?`；没听到的数字：${missNum.map(recEsc).join("、")}`:""));
-  h+=row("s","结构",lv.s,!txt?"—":`${nw} 词里发现 ${gErr} 处常见语法错误；用了 ${cx} 个从句/连接结构（while / when / because / which …）`);
+  h+=row("s","结构",lv.s,!txt?"—":`${nw} 词里发现 ${gErr} 处常见语法错误${nRep?`、${nRep} 处重复或填充词`:""}；用了 ${cx} 个从句/连接结构（while / when / because / which …）`);
   h+=row("v","词汇",lv.v,!txt?"—":`${nw} 词，用词重复度 ${Math.round((1-ttr)*100)}%；连接词 ${conn} 个`);
   h+=row("f","流利",lv.f,!P?(REC.blob?"录音解码失败，评不了停顿。":"没有录音，只按文字评了前三项。"):`有效时长 ${Math.round(P.span)} 秒，停顿占 ${Math.round(silR*100)}%，2 秒以上长停顿 ${long} 次`+(wpm?`，语速约每分钟 ${wpm} 词`:"")+`（5 级大约要：停顿 ≤25%，长停顿 ≤1 次，含停顿每分钟 ≥90 词）`);
   h+=`<tr><th>发音</th><td class="lv lv0">—</td><td>需要人听。转出来的文字里如果关键词错得离谱（比如 Cessna、collided、engine 变成别的词），通常说明那个词读得不清楚。</td></tr></table></div>`;
-  if(gram.length)h+=`<h3>语法问题</h3><ul class="recl">${gram.map(g=>`<li><code>${recEsc(g.hit)}</code> → ${recEsc(g.why)}</li>`).join("")}</ul>`;
+  if(marks.length){const A=recAnnot(txt,marks);
+    h+=`<h3>你的复述（标出了问题）</h3><p class="mute recleg"><mark class="eg">语法</mark> <mark class="er">重复</mark> <mark class="ef">填充词</mark></p><div class="recann">${A.ann}</div>`;
+    h+=`<ol class="recl">${marks.map(x=>`<li><mark class="e${x.type}">${recEsc(x.old)}</mark> → ${x.fix?`<ins>${recEsc(x.fix)}</ins>`:"删掉"}　<span class="mute">${recEsc(x.why)}</span></li>`).join("")}</ol>`;
+    h+=`<h3>改正后</h3><div class="recann">${A.cor}</div><p class="mute">只改了上面标出的问题，其余照你原话。漏掉的信息点见下面。</p>`}
+  else if(txt)h+=`<p class="mute">没有发现常见语法错误。</p>`;
   if(miss.length)h+=`<h3>可能漏掉或没说清的信息点</h3><ul class="recl">${miss.map(x=>`<li>${recEsc(x)}</li>`).join("")}</ul>`;
   if(P&&P.pauses.some(p=>p.len>=2))h+=`<h3>长停顿出现在</h3><p class="mute">${P.pauses.filter(p=>p.len>=2).map(p=>`${Math.round(p.at)} 秒处停 ${p.len.toFixed(1)} 秒`).join("；")}。回放听听那里在想什么，多半是下一句的开头词没想好。</p>`;
-  h+=`<p class="mute">自动评分只是估算：看信息点、常见语法错误、停顿和语速，不能代替考官。想要逐句点评，点「复制给 Claude」，或直接把录音文件发给 Claude。</p>`;
+  h+=`<p class="mute">评分门槛说明：五个评分项和"取最低项"来自 ICAO Doc 9835 评分量表；表里的数字门槛（信息点 80%、每百词错误 1.5 处、停顿 25%、每分钟 90 词等）是本程序为了自动计算定的经验值，ICAO 和 PEPEC 没有公布这类数字，考官也是听整体印象打分。</p><p class="mute">自动评分只是估算：看信息点、常见语法错误、停顿和语速，不能代替考官。想要逐句点评，点「复制给 Claude」，或直接把录音文件发给 Claude。</p>`;
   $("recRes").innerHTML=h;$("recMsg").textContent="";
-  REC.last={q:s[0],t:Date.now(),lv,overall,cov,wpm,long,silR,nw,txt,gram};
+  REC.last={q:s[0],t:Date.now(),lv,overall,cov,wpm,long,silR,nw,txt,marks};
   if(!REC.id)REC.id=Date.now();if(overall!=null)recSave(s[0],{id:REC.id,t:Date.now(),o:overall,c:lv.c,s:lv.s,v:lv.v,f:lv.f});recHistUI();}
 function recHistUI(){const h=(recHist()[S[cur][0]]||[]).slice(-6).reverse();
   $("recHist").innerHTML=h.length?"这篇最近的估算："+h.map(r=>`<span class="lv lv${r.o}">${r.o}</span><span class="mute">${new Date(r.t).toLocaleDateString("zh-CN",{month:"numeric",day:"numeric"})}</span>`).join(" "):""}
