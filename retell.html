@@ -297,7 +297,9 @@ details.rnbg>summary .n{color:var(--muted);font-weight:400;white-space:nowrap}
       </div>
       <p class="mute" id="recMsg" style="margin:6px 0 0">点「考场播放」，听完两遍后会自动开始录音；也可以随时手动点「开始录音」。</p>
       <p class="mute" id="recSrMsg" style="margin:4px 0 0"></p>
-      <div id="recPlay" hidden style="margin-top:8px"><audio id="recAud" controls></audio> <a id="recDl" class="mute">下载录音</a></div>
+      <div id="recPlay" hidden style="margin-top:8px"><audio id="recAud" controls></audio>
+        <div class="row" style="margin-top:6px"><button class="pri" id="recShare">📤 发给 Claude 批改</button><a id="recDl" class="mute">下载录音</a></div>
+        <p class="mute" id="recShareTip" style="margin:4px 0 0"></p></div>
       <textarea id="recTxt" placeholder="转写文字会出现在这里。识别错的词可以改；没有自动转写时，也可以自己把说的内容打进来，再点「按文字重新评分」。" style="margin-top:8px;min-height:90px"></textarea>
       <div class="row" style="margin-top:6px"><button id="recRe">按文字重新评分</button><button id="recCopy">复制给 Claude 细评</button><span class="mute" id="recHist"></span></div>
       <div id="recRes" style="margin-top:8px"></div>
@@ -867,7 +869,7 @@ async function recDone(){const mr=REC.mr;REC.mr=null;if(!REC.chunks.length){$("r
   REC.blob=new Blob(REC.chunks,{type:(mr&&mr.mimeType)||REC.mime||"audio/mp4"});
   if(REC.url)URL.revokeObjectURL(REC.url);REC.url=URL.createObjectURL(REC.blob);
   $("recAud").src=REC.url;$("recPlay").hidden=false;
-  const ext=/webm/.test(REC.blob.type)?"webm":"m4a";$("recDl").href=REC.url;$("recDl").download=`复述Q${S[cur][0]}_${new Date().toISOString().slice(5,16).replace(/[-T:]/g,"")}.${ext}`;
+  const ext=/webm/.test(REC.blob.type)?"webm":"m4a",d=new Date(),pad=n=>String(n).padStart(2,"0");REC.fname=`retell_Q${S[cur][0]}_${pad(d.getMonth()+1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}.${ext}`;REC.q=S[cur][0];$("recDl").href=REC.url;$("recDl").download=REC.fname;$("recShareTip").textContent="";
   if(REC.finals.length||REC.interim)$("recTxt").value=(REC.finals.join(" ")+" "+REC.interim).trim();
   $("recMsg").textContent="分析中……";
   REC.pause=await recPauses(REC.blob);recScore();}
@@ -977,6 +979,25 @@ function recCopy(){const L=REC.last;if(!L){toast("先录一遍");return}
 $("recBtn").onclick=()=>REC.mr?recStop():recStart();
 $("recRe").onclick=()=>{if(!$("recTxt").value.trim()&&!REC.pause){toast("先录音或输入文字");return}recScore()};
 $("recCopy").onclick=recCopy;
+/* 发给 Claude：用系统分享面板把录音交给 Claude App */
+function recShareText(){const s=S.find(x=>x[0]===REC.q)||S[cur];const L=REC.last,P=REC.pause;
+  let t=`请按 ICAO 5 级标准批改我的故事复述录音：Q${s[0]} ${s[2]}。`;
+  if(L&&L.txt)t+=`\n（App 转写，可能有识别错误）${L.txt}`;
+  if(P&&P.span)t+=`\n停顿：有效 ${Math.round(P.span)} 秒，停顿占 ${Math.round(P.sil/P.span*100)}%，2 秒以上 ${P.pauses.filter(p=>p.len>=2).length} 次`;
+  return t}
+async function recShare(){if(!REC.blob){toast("先录一遍");return}
+  const type=REC.blob.type.split(";")[0]||"audio/mp4";const file=new File([REC.blob],REC.fname||"retell.m4a",{type});const text=recShareText();
+  const tip=$("recShareTip");
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{try{await navigator.clipboard.writeText(text)}catch(e){}
+      await navigator.share({files:[file],title:`复述 Q${REC.q}`,text});
+      tip.textContent="在分享面板里选 Claude。题号已经写在文件名里；说明文字也复制好了，Claude 那边没带上的话，粘贴一下就行。";return}
+    catch(e){if(e&&e.name==="AbortError")return}}
+  const a=document.createElement("a");a.href=REC.url;a.download=REC.fname||"retell.m4a";document.body.appendChild(a);a.click();a.remove();
+  try{await navigator.clipboard.writeText(text)}catch(e){}
+  tip.textContent=`这个浏览器不能直接分享文件，已经把录音下载为 ${REC.fname}，说明文字也复制好了。打开 Claude，在对话里添加这个文件并粘贴文字发送即可。`}
+$("recShare").onclick=recShare;
+
 if(!SRC){$("recSr").checked=false;$("recSr").disabled=true}
 try{$("recAuto").checked=localStorage.getItem("retell.recAuto")!=="0"}catch(e){}
 $("recAuto").onchange=()=>{try{localStorage.setItem("retell.recAuto",$("recAuto").checked?"1":"0")}catch(e){}};
