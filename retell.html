@@ -985,17 +985,18 @@ function recShareText(){const s=S.find(x=>x[0]===REC.q)||S[cur];const L=REC.last
   if(L&&L.txt)t+=`\n（App 转写，可能有识别错误）${L.txt}`;
   if(P&&P.span)t+=`\n停顿：有效 ${Math.round(P.span)} 秒，停顿占 ${Math.round(P.sil/P.span*100)}%，2 秒以上 ${P.pauses.filter(p=>p.len>=2).length} 次`;
   return t}
-async function recShare(){if(!REC.blob){toast("先录一遍");return}
-  const type=REC.blob.type.split(";")[0]||"audio/mp4";const file=new File([REC.blob],REC.fname||"retell.m4a",{type});const text=recShareText();
-  const tip=$("recShareTip");
-  if(navigator.canShare&&navigator.canShare({files:[file]})){
-    try{try{await navigator.clipboard.writeText(text)}catch(e){}
-      await navigator.share({files:[file],title:`复述 Q${REC.q}`,text});
-      tip.textContent="在分享面板里选 Claude。题号已经写在文件名里；说明文字也复制好了，Claude 那边没带上的话，粘贴一下就行。";return}
-    catch(e){if(e&&e.name==="AbortError")return}}
+function recShare(){const tip=$("recShareTip");if(!REC.blob){toast("先录一遍");return}
+  const type=(REC.blob.type||"audio/mp4").split(";")[0];const file=new File([REC.blob],REC.fname||"retell.m4a",{type});const text=recShareText();
+  /* iPhone 要求分享在点按的同一刻发起，前面不能有任何等待 */
+  if(navigator.share){let ok=true;try{ok=!navigator.canShare||navigator.canShare({files:[file]})}catch(e){}
+    if(ok){tip.textContent="正在打开分享面板……";
+      navigator.share({files:[file],text}).then(()=>{tip.textContent="已分享。题号写在文件名里；Claude 那边如果没带上说明文字，点「复制给 Claude 细评」再粘贴一下。"},
+        e=>{if(e&&e.name==="AbortError"){tip.textContent="";return}recFallback(`分享没成功（${e&&e.name||"未知"}）。`)});return}}
+  recFallback("这个浏览器不能直接分享录音文件。")}
+function recFallback(why){const tip=$("recShareTip");
   const a=document.createElement("a");a.href=REC.url;a.download=REC.fname||"retell.m4a";document.body.appendChild(a);a.click();a.remove();
-  try{await navigator.clipboard.writeText(text)}catch(e){}
-  tip.textContent=`这个浏览器不能直接分享文件，已经把录音下载为 ${REC.fname}，说明文字也复制好了。打开 Claude，在对话里添加这个文件并粘贴文字发送即可。`}
+  const pwa=window.matchMedia&&matchMedia("(display-mode: standalone)").matches||navigator.standalone;
+  tip.textContent=why+(pwa?"你现在是从桌面图标打开的，这种模式下 iPhone 不能下载文件：请改用 Safari 打开这个网页再录。":`已尝试把录音下载为 ${REC.fname}；然后在 Claude 对话里添加这个文件，再点「复制给 Claude 细评」粘贴说明。`)}
 $("recShare").onclick=recShare;
 
 if(!SRC){$("recSr").checked=false;$("recSr").disabled=true}
