@@ -2,7 +2,7 @@
 (function(){
 var REPO='gh/bruse6275-del/icao900@main/';
 var SRC=['./'];
-var FILES=[['index.html','<html',100000],['retell.html','<html',50000],['part3.html','<html',100000],['dict.js','',500000],['update.js','icaoUpdate',500],['manifest.webmanifest','icons',50]];
+var FILES=[['index.html','<html',100000],['retell.html','<html',50000],['part3.html','<html',100000],['opi.html','icao900-opi',1000],['dict.js','',500000],['update.js','icaoUpdate',500],['manifest.webmanifest','icons',50]];
 var VK='icao900.ver';
 function type(f){return /\.html$/.test(f)?'text/html; charset=utf-8':/\.js$/.test(f)?'text/javascript; charset=utf-8':'application/json'}
 function get(u,ms){var ac=new AbortController(),t=setTimeout(function(){ac.abort()},ms);var url=u+(u.indexOf('http')===0?'':'?nosw=1&t='+Date.now());return fetch(url,{cache:'no-store',signal:ac.signal}).then(function(r){clearTimeout(t);if(!r.ok)throw new Error(String(r.status));return r.text()},function(e){clearTimeout(t);throw e})}
