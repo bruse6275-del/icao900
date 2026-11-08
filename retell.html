@@ -303,7 +303,7 @@ details.rnbg>summary .n{color:var(--muted);font-weight:400;white-space:nowrap}
       <div id="recPlay" hidden style="margin-top:8px"><audio id="recAud" controls></audio>
         <div class="row" style="margin-top:6px"><button class="pri" id="recShare">📤 发给 Claude 批改</button><a id="recDl" class="btnlink">⬇ 保存录音</a></div>
         <p class="recsharetip" id="recShareTip"></p></div>
-      <p class="mute" style="margin:8px 0 0;font-size:12px">页面版本 <span id="recVer">20261108-1000</span></p>
+      <p class="mute" style="margin:8px 0 0;font-size:12px">页面版本 <span id="recVer">20261108-1030</span></p>
       <textarea id="recTxt" placeholder="转写文字会出现在这里。识别错的词可以改；没有自动转写时，也可以自己把说的内容打进来，再点「按文字重新评分」。" style="margin-top:8px;min-height:90px"></textarea>
       <div class="row" style="margin-top:6px"><button id="recRe">按文字重新评分</button><button id="recCopy">复制给 Claude 细评</button><span class="mute" id="recHist"></span></div>
       <div id="recRes" style="margin-top:8px"></div>
@@ -563,7 +563,7 @@ const MODEL={
 71:`{{This story is about}} smoke in the cockpit on an Air France flight from London to Paris with 136 people. {{When the aircraft was}} climbing through FL230, the crew put on oxygen masks, declared Mayday and requested an immediate return to London. At first they suspected a fire, and then they reported smoke and fumes in the cockpit. Luckily, the aircraft landed safely on runway 13R about 23 minutes after departure, and it vacated and taxied to the apron. Later, the aircraft departed again about 4 hours after landing and reached Paris 4.5 hours late. {{The cause was that}} a faulty display had produced the smoke and fumes.`,
 72:`{{This story is about}} a cabin pressure problem. {{When the aircraft was}} descending towards Singapore from the Philippines with 129 people, the crew put on oxygen masks. {{Because}} the cabin altitude was too high, they declared PAN PAN, and {{the crew decided to}} make an emergency descent to 9,000 feet. Then they continued and landed safely on runway 20C. {{The cause was that}} the landing field elevation in the cabin pressure controller had become corrupted, probably because of a fatigued solder joint on the circuit board. A similar case had happened before.`,
 73:`{{This story is about}} a collision with a pushback tractor at London Heathrow. A British aircraft was pushed back by a towbarless tractor, which was then disconnected. After receiving taxi clearance, the aircraft started moving and shortly afterwards hit the tractor, damaging both the right engine and the tractor. {{The cause was that}} the headset operator gave the "all clear" signal before the tractor had moved to a safe distance. Also, the co-pilot didn't see the tractor, and the tractor didn't drive away when the aircraft began to taxi.`,
-74:`{{This story is about}} a rejected takeoff. {{When}} an ERJ190 bound for Mexico City {{was}} taking off from runway 03 at Durango, the crew rejected the takeoff because of adverse weather. {{As a result,}} the aircraft overran the runway, burst into flames and was destroyed. Nobody was killed, but 2 people were seriously injured and 83 had minor injuries. The airline said there were 99 passengers, and the aircraft had been in service since 2014. {{In the end,}} the flight recorders showed the pilots did a good job, which stopped it from becoming a catastrophe.`,
+74:`{{This story is about}} a rejected takeoff. {{When}} an ERJ190 bound for Mexico City {{was}} taking off from runway 03 at Durango, the crew rejected the takeoff because of adverse weather. {{As a result,}} the aircraft overran the runway, burst into flames and was destroyed. Nobody was killed, but 2 people were seriously injured, 83 had minor injuries, and some were taken to a local hospital. The local governor reported that the accident happened just as the aircraft was taking off. The airline said there were 99 passengers, and the aircraft had been in service since 2014. {{In the end,}} the flight recorders showed the pilots did a good job, which stopped it from becoming a catastrophe.`,
 75:`{{This story is about}} an engine failure on a flight from New York to Paris. {{When the aircraft was}} cruising at FL380, the crew reported a left engine failure and {{decided to}} divert. The diversion was approved, but because of traffic, their descent to FL320 took more than 15 minutes, so they stayed at FL380. Finally, they descended to FL290 and landed safely about 2 hours later, and another aircraft flew the 96 passengers and cargo to Paris. {{The cause was that}} when the engine started to vibrate, the crew moved the thrust lever back and forth, which made the engine stall.`,
 76:`{{This passage is about}} the visual approach. It is an ATC authorization for an IFR aircraft to proceed visually to the airport, even to landing. {{First,}} it is not an instrument approach procedure and has no missed approach segment. {{However,}} even during vectors for an instrument approach, the controller may offer, or the pilot may request, a visual approach if the pilot has the airport or runway in sight. {{Moreover,}} before clearing it, the controller must ensure the weather is VFR and resolve any conflicts, and the pilot must see the airport or the preceding aircraft. {{Finally,}} it must be authorized by ATC and remain under ATC control.`,
 77:`{{This story is about}} smoke in the cabin on a British Airways flight from London to Paris. {{When the aircraft was}} 20 minutes into the flight, a passenger in seat 12A reported a burning smell and alerted the crew, fearing a fire. The crew inspected the area but couldn't find the source. Soon the smoke became thicker, and some passengers had difficulty breathing. {{Because}} of this, the captain declared PAN PAN and requested an immediate diversion. {{However,}} the smoke got worse, and the aircraft went out of control. {{In the end,}} it crashed 15 miles from the alternate airport.`,
@@ -901,12 +901,15 @@ function numify(t){const w=t.toLowerCase().replace(/(\d),(\d{3})/g,"$1$2").repla
 const RSTOP=new Set("a an the and or but so to of in on at for with by from as is are was were be been being it its this that these those there their they them he him his she her we our i you your my me who which what when while then than into onto over after before about also very just only not no did do does had has have will would could should can may might up down out off all some any each other another such one two story passage happened".split(" "));
 const recStem=w=>{let x=w.toLowerCase().replace(/[^a-z0-9]/g,"");if(!x)return "";if(/^\d+$/.test(x))return x;try{x=lem(x)}catch(e){}return x.length>5?x.slice(0,5):x};
 function recToks(t){return numify(t).split(/\s+/).map(recStem).filter(x=>x&&!RSTOP.has(x)&&(x.length>=3||/^\d+$/.test(x)))}
-function recPoints(s){const m=MOD(s).replace(/\{\{|\}\}/g,"").replace(/^This (story|passage) is about /,"");
-  return m.split(/(?<=[.!?])\s+(?=[A-Z"])/).map(x=>({s:x,k:[...new Set(recToks(x))]})).filter(p=>p.k.length)}
+function recPoints(s){const m=TXT(s).replace(/\s+/g," ").trim();const out=[];
+  for(const x of m.split(/(?<=[.!?]["”]?)\s+(?=["“]?[A-Z])/)){const k=[...new Set(recToks(x))];if(!k.length)continue;
+    const last=out[out.length-1];if(last&&(k.length<5||last.k.length<5)){last.s+=" "+x;last.k=[...new Set(last.k.concat(k))]}else out.push({s:x,k})}
+  return out}
 const PAST={gives:"gave",tells:"told",says:"said",enters:"entered",crosses:"crossed",turns:"turned",starts:"started",asks:"asked",takes:"took",makes:"made",decides:"decided",reports:"reported",requests:"requested",lands:"landed",crashes:"crashed",sees:"saw",finds:"found",goes:"went",comes:"came",becomes:"became",tries:"tried",wants:"wanted",needs:"needed",knows:"knew",thinks:"thought",give:"gave",tell:"told",enter:"entered",cross:"crossed"};
 const keepCase=(o,n)=>/^[A-Z]/.test(o)?n[0].toUpperCase()+n.slice(1):n;
 /* [正则, 类型, 说明, 改法(匹配串, 分组...)] */
 const GRAM=[
+  [/\b(was|were)\s+(only\s+|just\s+|almost\s+|nearly\s+)?missed\s+each\s+other(\s+(?:for|with)(?=\s))?/gi,"g","miss 这里不用被动；差多少用 by",(m,a,adv,f)=>`${adv||""}missed each other${f?" by":""}`],
   [/\b(was|were|is|are|been|be)\s+(died|collided|happened|occurred|arrived|disappeared|crashed|departed|lasted)\b/gi,"g","不及物动词不能用被动",(m,a,v)=>v],
   [/\bcleared\s+(taxi|land|push|cross|line)\b/gi,"g","cleared 后面要加 to",(m,v)=>"cleared to "+v],
   [/\bcleared\s+(take ?off)\b/gi,"g","放行起飞用 cleared for takeoff",()=>"cleared for takeoff"],
@@ -918,6 +921,15 @@ const GRAM=[
   [/\b(although|though)\b([^.]*?)\bbut\b/gi,"g","although 和 but 不能同时用，删掉 but",(m,a,mid)=>`${a}${mid}`.replace(/,?\s*$/,",")],
   [/\bbecause\b([^.,]*?),?\s*so\b/gi,"g","because 和 so 不能同时用，删掉 so",(m,mid)=>`because${mid},`],
   [/\b(accident|incident|collision|crash|thing|event)\s+((?:in|on|at)\s+[\w ]{1,20}?\s+)?happened\b/gi,"g","名词后接 happened 要用 that 连接",(m,n,mid)=>`${n} ${(mid||"")}that happened`.replace(/\s+/g," ")],
+  [/\b(considered|discussed|regarded)\s+about\b/gi,"g","considered / regarded 后面不加 about",(m,v)=>v.toLowerCase()==="regarded"?"regarded as":v],
+  [/\bin\s+(its|this|that)\s+kind\b/gi,"g","同类中用 of its kind",(m,a)=>`of ${a} kind`],
+  [/\bat\s+the\s+middle\b/gi,"g","在中间用 in the middle",()=>"in the middle"],
+  [/\bafter\s+((?:the\s+)?(?:flight\s+)?[\w-]+(?:\s+\d+)?)\s+touchdown\b/gi,"g","这里要用动词过去式 touched down",(m,a)=>`after ${a} touched down`],
+  [/\bcleared\s+((?:the\s+)?(?:flight\s+)?[\w-]+(?:\s+\d+)?)\s+take ?off(?:\s+(?:for|on|from))?\b/gi,"g","放行起飞：cleared X for takeoff on runway …",(m,a)=>`cleared ${a} for takeoff on`],
+  [/\b(told|asked|instructed)\s+((?:the\s+)?(?:flight\s+)?[\w-]+(?:\s+\d+)?)\s+(stopped|turned|climbed|descended|continued|held|landed|contacted|went|taxied|returned|diverted|vacated|waited)\b/gi,"g","told sb to + 动词原形",(m,a,b,v)=>`${a} ${b.replace(/^the\s+(?=flight)/i,"")} to ${({stopped:"stop",turned:"turn",climbed:"climb",descended:"descend",continued:"continue",held:"hold",landed:"land",contacted:"contact",went:"go",taxied:"taxi",returned:"return",diverted:"divert",vacated:"vacate",waited:"wait"})[v.toLowerCase()]}`],
+  [/\b(decided|tried|wanted|managed|failed|had|needed|began|started|continued|planned|refused|agreed)\s+to\s+(early\s+|immediately\s+|quickly\s+)?(?!(?:speed|need|feed|proceed|exceed|succeed|bleed|shed|seed|heed)\b)(\w{2,}?(?:ied|ed))(\s+(?:off|up|down|out|back|over|away))?\b/gi,"g","to 后面用动词原形",(m,v,adv,w,prt)=>{const base=/ied$/i.test(w)?w.slice(0,-3)+"y":/([b-df-hj-np-tv-z])\1ed$/i.test(w)?w.slice(0,-3):w.slice(0,-2);return `${v} to ${base}${prt||""}${adv?" "+adv.trim():""}`}],
+  [/\bmissed\s+(each other|colliding)\s+(?:for|with)\s+(only\s+)?/gi,"g","差多少用 by：missed each other by only 50 feet",(m,a,o)=>`missed ${a} by ${o||""}`],
+  [/\bthe\s+(flight\s+\d{2,4})\b/gi,"g","航班号前不加 the",(m,a)=>a],
   [/\bmore\s+(\w+er)\b/gi,"g","比较级重复，去掉 more",(m,a)=>a],
   [/\b(gives|tells|says|enters|crosses|turns|starts|asks|takes|makes|decides|reports|requests|lands|crashes|sees|finds|goes|comes|becomes|tries|wants|needs|knows|thinks)\b/gi,"g","讲过去的事全程用过去时",m=>keepCase(m,PAST[m.toLowerCase()]||m)],
   [/\b(told|asked|instructed)\s+(the pilot|the crew|him|them|the aircraft)\s+(continue|hold|turn|climb|descend|go|stop|contact|taxi|land|divert|return)\b/gi,"g","told sb 后面要加 to",(m,a,b,c)=>`${a} ${b} to ${c}`],
@@ -930,17 +942,17 @@ function recMarks(txt){const L=[];for(const [re,type,why,fix] of GRAM){re.lastIn
     const s=m.index,e=s+m[0].length;if(!L.some(x=>s<x.e&&e>x.s))L.push({s,e,type,why,old:m[0],fix:fix(...m)});if(m[0].length===0)re.lastIndex++}}
   return L.sort((a,b)=>a.s-b.s)}
 function recAnnot(txt,L){let o="",p=0,cor="",q=0;L.forEach((x,i)=>{o+=recEsc(txt.slice(p,x.s))+`<mark class="e${x.type}">${recEsc(x.old)}</mark><sup>${i+1}</sup>`;p=x.e;
-    cor+=recEsc(txt.slice(q,x.s))+(x.fix?`<ins>${recEsc(x.fix)}</ins>`:"");q=x.e});
+    const fx=x.fix&&/^[A-Z]/.test(x.old)?x.fix[0].toUpperCase()+x.fix.slice(1):x.fix;x.fix=fx;cor+=recEsc(txt.slice(q,x.s))+(fx?`<ins>${recEsc(fx)}</ins>`:"");q=x.e});
   return {ann:o+recEsc(txt.slice(p)),cor:(cor+recEsc(txt.slice(q))).replace(/\s{2,}/g," ")}}
 function recScore(){const s=S[cur],txt=$("recTxt").value.trim(),P=REC.pause,R=[];
   const words=txt?numify(txt).split(/\s+/).filter(w=>/[a-z0-9]/i.test(w)):[];
   const nw=words.length;
-  // 理解：按例文信息点覆盖
+  // 理解：按原文信息点覆盖
   let cov=null,miss=[],missNum=[];
   if(nw>=10){const have=new Set(recToks(txt));const pts=recPoints(s);let got=0;
-    for(const p of pts){const h=p.k.filter(k=>have.has(k)).length;if(h/p.k.length>=0.45)got++;else miss.push(p.s)}
+    for(const p of pts){const h=p.k.filter(k=>have.has(k)).length;if(h/p.k.length>=0.4)got++;else miss.push(p.s)}
     cov=got/pts.length;
-    const nums=[...new Set((MOD(s).replace(/(\d),(\d{3})/g,"$1$2").match(/\d+(\.\d+)?/g)||[]))];
+    const nums=[...new Set((TXT(s).replace(/(\d),(\d{3})/g,"$1$2").match(/\d+(\.\d+)?/g)||[]))];
     const hn=new Set((numify(txt).replace(/(\d),(\d{3})/g,"$1$2").match(/\d+(\.\d+)?/g)||[]));missNum=nums.filter(n=>!hn.has(n))}
   // 结构：语法问题
   const marks=txt?recMarks(txt):[];const gErr=marks.filter(x=>x.type==="g").length;const nRep=marks.filter(x=>x.type!=="g").length;
@@ -952,14 +964,14 @@ function recScore(){const s=S[cur],txt=$("recTxt").value.trim(),P=REC.pause,R=[]
   const span=P&&P.span?P.span:null;let wpm=span&&nw?Math.round(nw/(span/60)):null;if(wpm>200)wpm=null;
   const long=P?P.pauses.filter(p=>p.len>=2).length:null;const silR=P&&P.span?P.sil/P.span:null;
   const lv={};
-  lv.c=cov==null?null:cov>=0.8?5:cov>=0.6?4:cov>=0.4?3:2;
-  lv.s=!txt?null:(gErr/Math.max(nw,1)*100<=1.5&&(cx>=2||(cx>=1&&nw>=80)))?5:(gErr/Math.max(nw,1)*100<=6)?4:3;
+  lv.c=cov==null?null:cov>=0.7?5:cov>=0.5?4:cov>=0.3?3:2;
+  lv.s=!txt?null:(gErr/Math.max(nw,1)*100<=1.5&&(cx>=2||(cx>=1&&nw>=80)))?5:(gErr/Math.max(nw,1)*100<=9)?4:3;
   lv.v=!txt?null:(nw<50?3:(ttr>=0.55&&conn>=3)?5:4);
   if(P&&P.span){let f=5;if(silR>0.25||long>1||(wpm&&wpm<90))f=4;if(silR>0.4||long>4||(wpm&&wpm<60))f=3;lv.f=f}else lv.f=null;
   const got=Object.values(lv).filter(x=>x!=null);const overall=got.length?Math.min(...got):null;
   const row=(k,name,v,why)=>`<tr><th>${name}</th><td class="lv lv${v||0}">${v==null?"—":v}</td><td>${why}</td></tr>`;
   let h=`<div class="recsum">估算：<b class="lv lv${overall||0}">${overall==null?"—":overall+" 级"}</b> <span class="mute">（ICAO 取各项最低分；发音需要人听，这里不打分）</span></div><div class="tblwrap"><table class="cmp rectab"><tr><th>项目</th><th>级</th><th>依据</th></tr>`;
-  h+=row("c","理解",lv.c,cov==null?"没有文字，评不了。转文字失败时，可以自己把复述内容打进下面的文字框，或把录音发给 Claude。":`例文信息点覆盖 ${Math.round(cov*100)}%（≥80% 约 5 级）`+(missNum.length?`；没听到的数字：${missNum.map(recEsc).join("、")}`:""));
+  h+=row("c","理解",lv.c,cov==null?"没有文字，评不了。转文字失败时，可以自己把复述内容打进下面的文字框，或把录音发给 Claude。":`原文信息点覆盖 ${Math.round(cov*100)}%（≥70% 约 5 级）`+(missNum.length?`；没听到的数字：${missNum.map(recEsc).join("、")}`:""));
   h+=row("s","结构",lv.s,!txt?"—":`${nw} 词里发现 ${gErr} 处常见语法错误${nRep?`、${nRep} 处重复或填充词`:""}；用了 ${cx} 个从句/连接结构（while / when / because / which …）`);
   h+=row("v","词汇",lv.v,!txt?"—":`${nw} 词，用词重复度 ${Math.round((1-ttr)*100)}%；连接词 ${conn} 个`);
   h+=row("f","流利",lv.f,!P?(REC.blob?"录音解码失败，评不了停顿。":"没有录音，只按文字评了前三项。"):`有效时长 ${Math.round(P.span)} 秒，停顿占 ${Math.round(silR*100)}%，2 秒以上长停顿 ${long} 次`+(wpm?`，语速约每分钟 ${wpm} 词`:"")+`（5 级大约要：停顿 ≤25%，长停顿 ≤1 次，含停顿每分钟 ≥90 词）`);
@@ -969,9 +981,9 @@ function recScore(){const s=S[cur],txt=$("recTxt").value.trim(),P=REC.pause,R=[]
     h+=`<ol class="recl">${marks.map(x=>`<li><mark class="e${x.type}">${recEsc(x.old)}</mark> → ${x.fix?`<ins>${recEsc(x.fix)}</ins>`:"删掉"}　<span class="mute">${recEsc(x.why)}</span></li>`).join("")}</ol>`;
     h+=`<h3>改正后</h3><div class="recann">${A.cor}</div><p class="mute">只改了上面标出的问题，其余照你原话。漏掉的信息点见下面。</p>`}
   else if(txt)h+=`<p class="mute">没有发现常见语法错误。</p>`;
-  if(miss.length)h+=`<h3>可能漏掉或没说清的信息点</h3><ul class="recl">${miss.map(x=>`<li>${recEsc(x)}</li>`).join("")}</ul>`;
+  if(miss.length)h+=`<h3>原文里可能漏掉或没说清的信息点</h3><ul class="recl">${miss.map(x=>`<li>${recEsc(x)}</li>`).join("")}</ul>`;
   if(P&&P.pauses.some(p=>p.len>=2))h+=`<h3>长停顿出现在</h3><p class="mute">${P.pauses.filter(p=>p.len>=2).map(p=>`${Math.round(p.at)} 秒处停 ${p.len.toFixed(1)} 秒`).join("；")}。回放听听那里在想什么，多半是下一句的开头词没想好。</p>`;
-  h+=`<p class="mute">评分门槛说明：五个评分项和"取最低项"来自 ICAO Doc 9835 评分量表；表里的数字门槛（信息点 80%、每百词错误 1.5 处、停顿 25%、每分钟 90 词等）是本程序为了自动计算定的经验值，ICAO 和 PEPEC 没有公布这类数字，考官也是听整体印象打分。</p><p class="mute">自动评分只是估算：看信息点、常见语法错误、停顿和语速，不能代替考官。想要逐句点评，点「复制给 Claude」，或直接把录音文件发给 Claude。</p>`;
+  h+=`<p class="mute">评分门槛说明：五个评分项和"取最低项"来自 ICAO Doc 9835 评分量表；表里的数字门槛（原文信息点 70%、每百词错误 1.5 处、停顿 25%、每分钟 90 词等）是本程序为了自动计算定的经验值，ICAO 和 PEPEC 没有公布这类数字，考官也是听整体印象打分。</p><p class="mute">自动评分只是估算：看信息点、常见语法错误、停顿和语速，不能代替考官。想要逐句点评，点「复制给 Claude」，或直接把录音文件发给 Claude。</p>`;
   $("recRes").innerHTML=h;$("recMsg").textContent="";
   REC.last={q:s[0],t:Date.now(),lv,overall,cov,wpm,long,silR,nw,txt,marks};
   if(!REC.id)REC.id=Date.now();if(overall!=null)recSave(s[0],{id:REC.id,t:Date.now(),o:overall,c:lv.c,s:lv.s,v:lv.v,f:lv.f});recHistUI();}
