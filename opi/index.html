@@ -115,8 +115,8 @@ details.recbox{border:1px dashed var(--rule);padding:8px 10px}details.recbox>sum
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));const norm=s=>s.toUpperCase().replace(/[^0-9A-Z]/g,'');
 async function unlock(code){const K=await fetch('keys.json',{cache:'no-cache'}).then(r=>r.json());const pw=await crypto.subtle.importKey('raw',new TextEncoder().encode(norm(code)),'PBKDF2',false,['deriveKey']);
  const kek=await crypto.subtle.deriveKey({name:'PBKDF2',salt:b64(K.salt),iterations:K.iter,hash:'SHA-256'},pw,{name:'AES-GCM',length:256},false,['decrypt']);
- let raw=null;for(const e of K.keys){try{raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(e.iv)},kek,b64(e.ct));break}catch(x){}}if(!raw)return null;
- const ck=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']),D=await fetch('data.enc',{cache:'no-cache'}).then(r=>r.json());
+ let raw=null,df='data.enc';for(const e of K.keys){try{raw=await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(e.iv)},kek,b64(e.ct));df=e.d||'data.enc';break}catch(x){}}if(!raw)return null;
+ const ck=await crypto.subtle.importKey('raw',raw,'AES-GCM',false,['decrypt']),D=await fetch(df,{cache:'no-cache'}).then(r=>r.json());
  return JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM',iv:b64(D.iv)},ck,b64(D.ct))))}
 
 function app(PACK){
@@ -655,14 +655,14 @@ async function enter(code,auto){const btn=document.getElementById('gb');btn.disa
   try{localStorage.setItem(CK,code)}catch(e){}document.getElementById('gate').hidden=true;document.getElementById('shell').hidden=false;app(d)}catch(e){ge.textContent='暂时打不开，请检查网络后再试。';ge.hidden=false;btn.disabled=false}}
 document.getElementById('gf').onsubmit=e=>{e.preventDefault();enter(document.getElementById('code').value.trim())};
 
-const OPIVER='202611082347',vlab=v=>v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12);
+const OPIVER='202611082352',vlab=v=>v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12);
 const um=t=>{const e=document.getElementById('updMsg');if(e)e.textContent=t};um('当前版本 '+vlab(OPIVER));
 async function opiUpdate(){const b=document.getElementById('upd');b.disabled=true;
  try{if(!window.caches){um('这个浏览器不支持离线更新，请直接刷新页面');return}if(navigator.onLine===false){um('设备离线，继续使用本机版本');return}
   um('正在检查更新…');const g=(f,ms)=>{const ac=new AbortController(),t=setTimeout(()=>ac.abort(),ms);return fetch(f+'?nosw=1&t='+Date.now(),{cache:'no-store',signal:ac.signal}).then(r=>{clearTimeout(t);if(!r.ok)throw 0;return r.text()})};
   const sw=await g('sw.js',10000),v=(/opip-(\d{12})/.exec(sw)||[])[1];if(!v){um('连不上 GitHub，继续使用本机版本，换个网络再试');return}
   if(v<=OPIVER){um('已是最新（'+vlab(OPIVER)+'）');return}
-  um('发现新版本 '+vlab(v)+'，正在下载…');const F=[['index.html','id="gate"'],['keys.json','"salt"'],['data.enc','"ct"'],['manifest.webmanifest','icons']],got=[];
+  um('发现新版本 '+vlab(v)+'，正在下载…');const F=[['index.html','id="gate"'],['keys.json','"salt"'],['data.enc','"ct"'],['data-me.enc','"ct"'],['manifest.webmanifest','icons']],got=[];
   for(const [f,chk] of F){const t=await g(f,120000);if(t.indexOf(chk)<0)throw 0;got.push([f,t])}
   const base=new URL('./',location.href).href,ty=f=>/html$/.test(f)?'text/html; charset=utf-8':'application/json';
   const names=(await caches.keys()).filter(k=>k.startsWith('opip-'));if(!names.includes('opip-'+v))names.push('opip-'+v);
