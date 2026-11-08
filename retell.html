@@ -84,6 +84,12 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .rectab{width:100%;min-width:0!important;table-layout:fixed}.rectab th,.rectab td{white-space:normal!important;word-break:break-word;vertical-align:top}.rectab tr>*:first-child{width:3.2em}.rectab tr>*:nth-child(2){width:2.4em}
 .rectab td.lv{display:table-cell;border-radius:0}.recsum{font-size:15px;margin:4px 0 8px}
 .recl{margin:4px 0 8px;padding-left:22px}
+.mycmp .cmrow{border-bottom:1px solid var(--line);padding:8px 0;line-height:1.75}
+.mycmp .cm-m,.mycmp .cm-t{display:flex;gap:8px}.mycmp .cm-m b,.mycmp .cm-t b{flex:none;width:1.4em;height:1.4em;line-height:1.4em;text-align:center;border-radius:4px;font-size:12px;margin-top:3px}
+.mycmp .cm-m b{background:var(--soft);color:var(--muted)}.mycmp .cm-t b{background:#e6efff;color:#1f5bd1}.mycmp .cm-t{margin-top:2px}
+.cm-miss{background:#d7f3e1;color:#14663a;border-radius:3px;padding:0 2px}.cm-diff{background:#fff1a8;border-bottom:2px solid #e0b400;border-radius:3px;padding:0 2px;cursor:pointer}
+.cm-extra{background:#fde0dd;color:#9b2a1f;border-radius:3px;padding:0 2px}.cm-none{color:var(--muted);font-style:italic}
+.cmleg span{margin:0 2px}.mycmp .cmx{flex:1;min-width:0}
 header .upd{font-size:13px;padding:4px 10px;margin-left:8px}
 header .updst{font-size:12px;color:var(--muted);margin-left:6px}
 mark.myfix{background:#fff1a8;color:inherit;border-bottom:2px solid #e0b400;border-radius:2px;padding:0 1px}
@@ -310,7 +316,7 @@ details.rnbg>summary .n{color:var(--muted);font-weight:400;white-space:nowrap}
       <div id="recPlay" hidden style="margin-top:8px"><audio id="recAud" controls></audio>
         <div class="row" style="margin-top:6px"><button class="pri" id="recShare">📤 发给 Claude 批改</button><a id="recDl" class="btnlink">⬇ 保存录音</a></div>
         <p class="recsharetip" id="recShareTip"></p></div>
-      <p class="mute" style="margin:8px 0 0;font-size:12px">页面版本 <span id="recVer">20261108-1220</span></p>
+      <p class="mute" style="margin:8px 0 0;font-size:12px">页面版本 <span id="recVer">20261108-1240</span></p>
       <textarea id="recTxt" placeholder="转写文字会出现在这里。识别错的词可以改；没有自动转写时，也可以自己把说的内容打进来，再点「按文字重新评分」。" style="margin-top:8px;min-height:90px"></textarea>
       <div class="row" style="margin-top:6px"><button id="recRe">按文字重新评分</button><button id="recCopy">复制给 Claude 细评</button><span class="mute" id="recHist"></span></div>
       <div id="recRes" style="margin-top:8px"></div>
@@ -357,6 +363,7 @@ details.rnbg>summary .n{color:var(--muted);font-weight:400;white-space:nowrap}
       <div class="kw" id="kw"></div>
       <h2 style="margin-top:16px">复述范文 · <span id="mwc"></span></h2>
       <div class="orig model" id="model"></div>
+      <div id="mycmp" class="mycmp" hidden></div>
       <div id="myerr" class="myerr" hidden><h2 style="margin-top:14px">我犯过的错 <span class="mute" style="font-weight:400">范文里标黄的地方，都是我录音时说错过的</span></h2><ul id="myerrList"></ul></div>
             <h2 style="margin-top:16px">这篇的草稿纸：按 5 格记，复述时一格说一步</h2>
       <div class="tblwrap"><table class="cmp notes" id="notes5"></table></div>
@@ -652,7 +659,7 @@ function go(i){
    $("mwc").textContent=`${n} 词 · 按每分钟 100 词约 ${Math.round(n/100*60)} 秒`;
    const esc=t=>t.replace(/&/g,"&amp;").replace(/</g,"&lt;");
    let x=esc(m);for(const [t,re] of CP[s[1]]){x=x.replace(new RegExp(re.source,"g"),w=>`\u0001${w}\u0002`)}
-   $("model").innerHTML=x.replace(/\{\{(.*?)\}\}/g,'<b class="fr">$1</b>').replace(/\u0001/g,'<u class="cp">').replace(/\u0002/g,'</u>');renderMyErr(s);}
+   $("model").innerHTML=x.replace(/\{\{(.*?)\}\}/g,'<b class="fr">$1</b>').replace(/\u0001/g,'<u class="cp">').replace(/\u0002/g,'</u>');renderMyErr(s);if(typeof renderCmp==="function")renderCmp(s);}
   $("checks").innerHTML=CHECKS.map((c,k)=>`<label for="ck${k}"><input type="checkbox" id="ck${k}"><span><b>${c[0]}</b>${c[1]}</span></label>`).join("");
   $("tplTitle").textContent=CATS[s[1]].name+" · 5 级句型";
   $("tpl").innerHTML=CATS[s[1]].tpl.map(t=>`<li>${t}</li>`).join("")+`<li class="warn">句型只是框架，填进去的内容必须来自原文。原文没说的结果、伤亡和教训不要加。</li>`;
@@ -914,13 +921,13 @@ async function recPauses(blob){try{const buf=await blob.arrayBuffer();const AC=w
   return {dur:ab.duration,start:a*0.05,span,sil,pauses}}catch(e){return null}}
 /* 文字分析 */
 const NUMW={zero:0,oh:0,one:1,two:2,three:3,four:4,five:5,six:6,seven:7,eight:8,nine:9,niner:9,ten:10,eleven:11,twelve:12,thirteen:13,fourteen:14,fifteen:15,sixteen:16,seventeen:17,eighteen:18,nineteen:19,twenty:20,thirty:30,forty:40,fifty:50,sixty:60,seventy:70,eighty:80,ninety:90};
-function numify(t){const w=t.toLowerCase().replace(/(\d),(\d{3})/g,"$1$2").replace(/-/g," ").split(/\s+/),out=[];let i=0;
+function numify(t){const W0=t.replace(/(\d),(\d{3})/g,"$1$2").replace(/-/g," ").split(/\s+/),w=W0.map(x=>x.toLowerCase()),out=[];let i=0;
   while(i<w.length){const x=w[i].replace(/[^a-z0-9]/g,"");
     if(x in NUMW||((x==="hundred"||x==="thousand")&&out.length)){let j=i,seq=[];while(j<w.length){const y=w[j].replace(/[^a-z0-9]/g,"");if(y in NUMW||y==="hundred"||y==="thousand"||(y==="and"&&seq.length&&j+1<w.length&&(w[j+1].replace(/[^a-z]/g,"") in NUMW)))seq.push(y);else break;j++}
       const digs=seq.filter(y=>y!=="and");
       if(digs.length>1&&digs.every(y=>y in NUMW&&NUMW[y]<10))out.push(digs.map(y=>NUMW[y]).join(""));
       else{let tot=0,c=0;for(const y of digs){if(y==="hundred")c=(c||1)*100;else if(y==="thousand"){tot+=(c||1)*1000;c=0}else c+=NUMW[y]}out.push(String(tot+c))}
-      i=j}else{out.push(w[i]);i++}}
+      i=j}else{out.push(W0[i]);i++}}
   return out.join(" ")}
 const RSTOP=new Set("a an the and or but so to of in on at for with by from as is are was were be been being it its this that these those there their they them he him his she her we our i you your my me who which what when while then than into onto over after before about also very just only not no did do does had has have will would could should can may might up down out off all some any each other another such one two story passage happened".split(" "));
 const recStem=w=>{let x=w.toLowerCase().replace(/[^a-z0-9]/g,"");if(!x)return "";if(/^\d+$/.test(x))return x;try{x=lem(x)}catch(e){}return x.length>5?x.slice(0,5):x};
@@ -1007,10 +1014,10 @@ function recScore(){const s=S[cur],txt=$("recTxt").value.trim(),P=REC.pause,R=[]
   else if(txt)h+=`<p class="mute">没有发现常见语法错误。</p>`;
   if(miss.length)h+=`<h3>原文里可能漏掉或没说清的信息点</h3><ul class="recl">${miss.map(x=>`<li>${recEsc(x)}</li>`).join("")}</ul>`;
   if(P&&P.pauses.some(p=>p.len>=2))h+=`<h3>长停顿出现在</h3><p class="mute">${P.pauses.filter(p=>p.len>=2).map(p=>`${Math.round(p.at)} 秒处停 ${p.len.toFixed(1)} 秒`).join("；")}。回放听听那里在想什么，多半是下一句的开头词没想好。</p>`;
-  h+=`<p class="mute">评分门槛说明：五个评分项和"取最低项"来自 ICAO Doc 9835 评分量表；表里的数字门槛（原文信息点 70%、每百词错误 1.5 处、停顿 25%、每分钟 90 词等）是本程序为了自动计算定的经验值，ICAO 和 PEPEC 没有公布这类数字，考官也是听整体印象打分。</p><p class="mute">自动评分只是估算：看信息点、常见语法错误、停顿和语速，不能代替考官。想要逐句点评，点「复制给 Claude」，或直接把录音文件发给 Claude。</p>`;
-  $("recRes").innerHTML=h;$("recMsg").textContent="";
+  h+=txt?`<p><button id="recCmpGo" class="pri">📖 逐句对照例文</button></p>`:"";h+=`<p class="mute">评分门槛说明：五个评分项和"取最低项"来自 ICAO Doc 9835 评分量表；表里的数字门槛（原文信息点 70%、每百词错误 1.5 处、停顿 25%、每分钟 90 词等）是本程序为了自动计算定的经验值，ICAO 和 PEPEC 没有公布这类数字，考官也是听整体印象打分。</p><p class="mute">自动评分只是估算：看信息点、常见语法错误、停顿和语速，不能代替考官。想要逐句点评，点「复制给 Claude」，或直接把录音文件发给 Claude。</p>`;
+  $("recRes").innerHTML=h;$("recMsg").textContent="";if($("recCmpGo"))$("recCmpGo").onclick=()=>{stop();$("answer").hidden=false;$("mycmp").scrollIntoView({behavior:"smooth",block:"start"})};
   REC.last={q:s[0],t:Date.now(),lv,overall,cov,wpm,long,silR,nw,txt,marks};
-  if(!REC.id)REC.id=Date.now();myErrAdd(s[0],marks.filter(x=>x.type==="g"&&x.fix).map(x=>[x.fix.trim(),x.old,x.why]));renderMyErr(s);if(overall!=null)recSave(s[0],{id:REC.id,t:Date.now(),o:overall,c:lv.c,s:lv.s,v:lv.v,f:lv.f});recHistUI();}
+  if(!REC.id)REC.id=Date.now();if(txt)saveLastTxt(s[0],txt,REC.id);renderCmp(s);myErrAdd(s[0],marks.filter(x=>x.type==="g"&&x.fix).map(x=>[x.fix.trim(),x.old,x.why]));renderMyErr(s);if(overall!=null)recSave(s[0],{id:REC.id,t:Date.now(),o:overall,c:lv.c,s:lv.s,v:lv.v,f:lv.f});recHistUI();}
 function recHistUI(){const h=(recHist()[S[cur][0]]||[]).slice(-6).reverse();
   $("recHist").innerHTML=h.length?"这篇最近的估算："+h.map(r=>`<span class="lv lv${r.o}">${r.o}</span><span class="mute">${new Date(r.t).toLocaleDateString("zh-CN",{month:"numeric",day:"numeric"})}</span>`).join(" "):""}
 function recCopy(){const L=REC.last;if(!L){toast("先录一遍");return}
@@ -1019,6 +1026,37 @@ function recCopy(){const L=REC.last;if(!L){toast("先录一遍");return}
 $("recBtn").onclick=()=>REC.mr?recStop():recStart();
 $("recRe").onclick=()=>{if(!$("recTxt").value.trim()&&!REC.pause){toast("先录音或输入文字");return}recScore()};
 $("recCopy").onclick=recCopy;
+/* 我的复述对照例文：全文对齐（按词干），逐句列出例文和我说的，标出不一致 */
+var LTKEY="retell.lasttxt.v1";
+function lastTxt(q){try{return (JSON.parse(localStorage.getItem(LTKEY)||"{}"))[q]||null}catch(e){return null}}
+function saveLastTxt(q,txt,t){try{const a=JSON.parse(localStorage.getItem(LTKEY)||"{}");a[q]={txt,t};localStorage.setItem(LTKEY,JSON.stringify(a))}catch(e){}}
+function cmpTok(text){const T=text.split(/\s+/).filter(Boolean).map(w=>{const core=w.toLowerCase().replace(/[’']/g,"'").replace(/[^a-z0-9']/g,"").replace(/'s$/,"");const nw=NUMW[core];return {w,core:nw!=null?String(nw):core,st:nw!=null?String(nw):(recStem(core)||core)}});
+  for(let i=0;i+1<T.length;i++){const a=T[i],b=T[i+1];if((a.core==="airbus"||a.core==="boeing")&&/^\d{3}$/.test(b.core)){a.st=a.core[0]+b.core;a.core=a.st;b.join=1;b.core="";b.st=""}}
+  return T}
+function renderCmp(s){const box=$("mycmp");const L=lastTxt(s[0]);if(!L||!L.txt||L.txt.split(/\s+/).length<8){box.hidden=true;box.innerHTML="";return}
+  const e=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;");
+  const sents=MOD(s).replace(/\{\{|\}\}/g,"").split(/(?<=[.!?]["”]?)\s+(?=["“]?[A-Z])/);
+  const M=[];sents.forEach((x,k)=>cmpTok(x).forEach(t=>{t.k=k;M.push(t)}));
+  const T=cmpTok(numify(L.txt).replace(/(\d)\s*,\s*(\d{3})/g,"$1$2"));
+  const n=M.length,m=T.length,D=Array.from({length:n+1},()=>new Uint16Array(m+1));
+  for(let i=n-1;i>=0;i--)for(let j=m-1;j>=0;j--)D[i][j]=M[i].st&&M[i].st===T[j].st?D[i+1][j+1]+1:Math.max(D[i+1][j],D[i][j+1]);
+  let i=0,j=0;while(i<n&&j<m){if(M[i].st&&M[i].st===T[j].st){M[i].mj=j;T[j].mi=i;i++;j++}else if(D[i+1][j]>=D[i][j+1])i++;else j++}
+  let lastK=0;T.forEach((t,ix)=>{if(t.join&&ix){t.k=T[ix-1].k;return}if(t.mi!=null)lastK=M[t.mi].k;t.k=lastK});
+  // 句首没匹配上的词归到后一个匹配词所在句
+  for(let a=0;a<T.length&&T[a].mi==null;a++){const nx=T.find(x=>x.mi!=null);if(nx)T[a].k=M[nx.mi].k}
+  let miss=0,diff=0,extra=0;const rows=sents.map((x,k)=>{
+    const mt=M.filter(t=>t.k===k),tt=T.filter(t=>t.k===k);
+    const ml=mt.map(t=>t.mj==null&&t.core?(miss++,`<span class="cm-miss">${e(t.w)}</span>`):e(t.w)).join(" ");
+    const tl=tt.length?tt.map((t,ix)=>{if(t.join){const pv=tt[ix-1];return pv&&pv.mi==null?`<span class="cm-extra">${e(t.w)}</span>`:e(t.w)}
+      if(t.mi==null)return t.core?(extra++,`<span class="cm-extra">${e(t.w)}</span>`):e(t.w);
+      return M[t.mi].core!==t.core?(diff++,`<span class="cm-diff" title="例文：${e(M[t.mi].w)}">${e(t.w)}</span>`):e(t.w)}).join(" "):`<span class="cm-none">（这句没说）</span>`;
+    return `<div class="cmrow"><div class="cm-m"><b>例</b><span class="cmx">${ml}</span></div><div class="cm-t"><b>我</b><span class="cmx">${tl}</span></div></div>`});
+  const cov=Math.round(M.filter(t=>t.mj!=null).length/Math.max(1,M.filter(t=>t.core).length)*100);
+  box.hidden=false;box.innerHTML=`<h2 style="margin-top:14px">🎙 我的复述 · 逐句对照例文 <span class="mute" style="font-weight:400">${new Date(L.t).toLocaleString("zh-CN",{month:"numeric",day:"numeric",hour:"2-digit",minute:"2-digit"})} 录音</span></h2>
+   <p class="mute cmleg">例文里<span class="cm-miss">绿底</span>是我没说到的词；我说的里面<span class="cm-diff">黄底</span>是同一个词但形式不同（时态、单复数等，点一下看例文怎么说），<span class="cm-extra">红底</span>是例文里没有的说法。和例文的词重合 ${cov}%，形式不同 ${diff} 处，不同说法 ${extra} 处。</p>
+   ${rows.join("")}<p class="mute" style="margin:6px 0 0">不一致不一定是错：原文里有的信息，换个说法也可以。重点看黄底（多半是语法）和整句没说的地方。转文字识别错的词也会显示成红底。</p>`}
+document.addEventListener("click",ev=>{const d=ev.target.closest&&ev.target.closest(".cm-diff");if(d)toast("例文："+d.title.replace(/^例文：/,""))});
+
 document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest(".myerrdel");if(!a)return;e.preventDefault();myErrDel(S[cur][0],a.dataset.w);go(cur);$("answer").hidden=false});
 /* 发给 Claude：用系统分享面板把录音交给 Claude App */
 function recShareText(){const s=S.find(x=>x[0]===REC.q)||S[cur];const L=REC.last,P=REC.pause;
