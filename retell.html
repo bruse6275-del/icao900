@@ -316,15 +316,16 @@ details.rnbg>summary .n{color:var(--muted);font-weight:400;white-space:nowrap}
       <div id="recPlay" hidden style="margin-top:8px"><audio id="recAud" controls></audio>
         <div class="row" style="margin-top:6px"><button class="pri" id="recShare">📤 发给 Claude 批改</button><a id="recDl" class="btnlink">⬇ 保存录音</a></div>
         <p class="recsharetip" id="recShareTip"></p></div>
-      <p class="mute" style="margin:8px 0 0;font-size:12px">页面版本 <span id="recVer">20261108-1830</span></p>
+      <p class="mute" style="margin:8px 0 0;font-size:12px">页面版本 <span id="recVer">20261108-1850</span></p>
       <textarea id="recTxt" placeholder="转写文字会出现在这里。识别错的词可以改；没有自动转写时，也可以自己把说的内容打进来，再点「按文字重新评分」。" style="margin-top:8px;min-height:90px"></textarea>
       <div class="row" style="margin-top:6px"><button id="recRe">按文字重新评分</button><button id="recCopy">复制给 Claude 细评</button><span class="mute" id="recHist"></span></div>
       <div id="recRes" style="margin-top:8px"></div>
     </section>
 
     <details class="card rules" id="rnbcard">
-      <summary>故事复述单词本 <span class="mute" id="rnbCount"></span></summary>
+      <summary><span id="rnbTitle">本题单词本</span> <span class="mute" id="rnbCount"></span></summary>
       <div class="row" style="margin-top:10px">
+        <select id="rnbScope" aria-label="范围"><option value="cur">只看本题</option><option value="all">全部故事</option></select>
         <button id="rnbHide" aria-pressed="false">遮住中文自测</button>
         <label class="mute" for="rnbSort">排序</label>
         <select id="rnbSort"><option value="q">按题号</option><option value="t">最近加入</option><option value="a">按字母</option></select>
@@ -647,7 +648,7 @@ const CHECKS=[
  ["发音","数字、跑道号、航班号读得清楚（runway three-six right、flight six-two-six）"]
 ];
 function go(i){
-  stop();if(typeof REC!=="undefined"){if(REC.mr)recStop();REC.last=null;REC.pause=null;$("recRes").innerHTML="";$("recTxt").value="";$("recPlay").hidden=true;setTimeout(recHistUI)}cur=i;const s=S[i];
+  stop();setTimeout(()=>{try{renderRNB()}catch(e){}});if(typeof REC!=="undefined"){if(REC.mr)recStop();REC.last=null;REC.pause=null;$("recRes").innerHTML="";$("recTxt").value="";$("recPlay").hidden=true;setTimeout(recHistUI)}cur=i;const s=S[i];
   $("qid").textContent="Q"+s[0];$("qtitle").textContent=s[2];$("qcat").textContent=CATS[s[1]].name;
   $("notes").value="";$("answer").hidden=true;resetTimer();
   $("kw").innerHTML=`<b>第一遍抓</b><span>${s[3]}</span><b>第二遍补</b><span>${s[4]}</span>`+(s[6]?`<b>提示</b><span>${s[6]}</span>`:"");
@@ -824,9 +825,11 @@ const escH=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,
 function nbHere(){const id=S[cur][0],nb=nbLoad();
   const ws=Object.values(nb).filter(v=>(v.q||[]).includes(id)).map(v=>v.w);
   $("nbHere").textContent=ws.length?`本篇已加入单词本：${ws.join(" · ")}`:""}
-function renderRNB(){const nb=nbLoad();const it=Object.entries(nb);$("rnbCount").textContent=it.length?`· ${it.length} 个`:'· 还没有词';
-  if(!it.length){$("rnbList").innerHTML='<p class="mute">在「对照答案」的范文或原文里选中词或短语，点「加入单词本」，就会出现在这里。</p>';return}
-  const mode=$("rnbSort").value;const row=([k,v])=>{const pp=v.p||ipaSafe(v.w),zz=v.z||zhOf(v.w);return `<div class="rnbi"><span class="w">${escH(v.w)}</span>`+
+function renderRNB(){const nb=nbLoad();const scope=$("rnbScope").value,cq=S[cur]&&S[cur][0];
+  const it=Object.entries(nb).filter(([k,v])=>scope==='all'||(v.q||[]).includes(cq));
+  $("rnbTitle").textContent=scope==='all'?'全部故事单词本':`Q${cq} 单词本`;$("rnbCount").textContent=it.length?`· ${it.length} 个`:'· 还没有词';
+  if(!it.length){$("rnbOpen").hidden=$("rnbFold").hidden=true;$("rnbList").innerHTML=scope==='all'?'<p class="mute">还没有词。</p>':'<p class="mute">这篇还没有词。在「对照答案」的范文或原文里选中词或短语，点「加入单词本」，就会记在这篇里。</p>';return}
+  let mode=$("rnbSort").value;if(scope!=='all'&&mode==='q')mode='a';const row=([k,v])=>{const pp=v.p||ipaSafe(v.w),zz=v.z||zhOf(v.w);return `<div class="rnbi"><span class="w">${escH(v.w)}</span>`+
     (rnbEd?`<span class="ed"><input data-k="${escH(k)}" data-f="p" value="${escH(pp)}" placeholder="音标"><input data-k="${escH(k)}" data-f="z" value="${escH(zz)}" placeholder="中文意思"></span>`:`<span class="pz"><span class="ipa">/${escH(pp)}/</span> <span class="z" title="点一下显示">${escH(zz||'—')}</span></span>`)+
     `<span class="act"><button data-say="${escH(v.w)}">🔊</button><button class="del" data-del="${escH(k)}" title="删除" aria-label="删除">✕</button></span>`+
     `<span class="ctx">${escH(v.n||'')}${(v.q||[]).map(q=>`<a href="#" class="qa" data-q="${q}">Q${q}</a>`).join('')}</span></div>`};
@@ -835,6 +838,8 @@ function renderRNB(){const nb=nbLoad();const it=Object.entries(nb);$("rnbCount")
     for(const q of Object.keys(G).map(Number).sort((a,b)=>a-b)){const s=S.find(x=>x[0]===q);html+=`<details class="rnbg" data-g="${q}"${rnbFoldGet().has(q)?'':' open'}><summary><span>Q${q} ${s?escH(s[2]):''}</span><span class="n">${G[q].length} 个</span></summary>${G[q].sort((a,b)=>a[1].w.localeCompare(b[1].w)).map(row).join('')}</details>`}}
   else{const L=it.sort(mode==='t'?(a,b)=>(b[1].t||0)-(a[1].t||0):(a,b)=>a[1].w.localeCompare(b[1].w,'en',{sensitivity:'base'}));html='<div class="rnbg">'+L.map(row).join('')+'</div>'}
   $("rnbList").innerHTML=html;$("rnbOpen").hidden=$("rnbFold").hidden=mode!=='q'}
+$("rnbScope").onchange=()=>{try{localStorage.setItem('retell.nbscope',$("rnbScope").value)}catch(e){}renderRNB()};
+try{if(localStorage.getItem('retell.nbscope')==='all')$("rnbScope").value='all'}catch(e){}
 function rnbFoldGet(){try{return new Set(JSON.parse(localStorage.getItem('retell.nbfold')||'[]'))}catch(e){return new Set()}}
 function rnbFoldSet(s){try{localStorage.setItem('retell.nbfold',JSON.stringify([...s]))}catch(e){}}
 $("rnbList").addEventListener('toggle',e=>{const d=e.target;if(!d.matches||!d.matches('details.rnbg'))return;const s=rnbFoldGet(),q=+d.dataset.g;d.open?s.delete(q):s.add(q);rnbFoldSet(s)},true);
