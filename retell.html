@@ -84,6 +84,9 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .rectab{width:100%;min-width:0!important;table-layout:fixed}.rectab th,.rectab td{white-space:normal!important;word-break:break-word;vertical-align:top}.rectab tr>*:first-child{width:3.2em}.rectab tr>*:nth-child(2){width:2.4em}
 .rectab td.lv{display:table-cell;border-radius:0}.recsum{font-size:15px;margin:4px 0 8px}
 .recl{margin:4px 0 8px;padding-left:22px}
+.btnlink{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink)}
+.btnlink.hl{border-color:var(--accent);color:var(--accent);font-weight:600}
+.recsharetip{margin:6px 0 0;font-size:14px;color:var(--ink);background:var(--soft);border-radius:8px;padding:0 10px}.recsharetip:not(:empty){padding:8px 10px}
 .recann{background:var(--soft);border-radius:8px;padding:10px 12px;line-height:1.9;margin:4px 0}
 mark.eg{background:#fde0dd;color:#9b2a1f;border-bottom:2px solid #d0453a}mark.er{background:#ffe9c7;color:#8a5a00}mark.ef{background:#e7e9ec;color:#5d6b7a;text-decoration:line-through}
 #reccard ins{text-decoration:none;background:#d7f3e1;color:#14663a;border-radius:3px;padding:0 2px}
@@ -298,8 +301,9 @@ details.rnbg>summary .n{color:var(--muted);font-weight:400;white-space:nowrap}
       <p class="mute" id="recMsg" style="margin:6px 0 0">点「考场播放」，听完两遍后会自动开始录音；也可以随时手动点「开始录音」。</p>
       <p class="mute" id="recSrMsg" style="margin:4px 0 0"></p>
       <div id="recPlay" hidden style="margin-top:8px"><audio id="recAud" controls></audio>
-        <div class="row" style="margin-top:6px"><button class="pri" id="recShare">📤 发给 Claude 批改</button><a id="recDl" class="mute">下载录音</a></div>
-        <p class="mute" id="recShareTip" style="margin:4px 0 0"></p></div>
+        <div class="row" style="margin-top:6px"><button class="pri" id="recShare">📤 发给 Claude 批改</button><a id="recDl" class="btnlink">⬇ 保存录音</a></div>
+        <p class="recsharetip" id="recShareTip"></p></div>
+      <p class="mute" style="margin:8px 0 0;font-size:12px">页面版本 <span id="recVer">20261108-1000</span></p>
       <textarea id="recTxt" placeholder="转写文字会出现在这里。识别错的词可以改；没有自动转写时，也可以自己把说的内容打进来，再点「按文字重新评分」。" style="margin-top:8px;min-height:90px"></textarea>
       <div class="row" style="margin-top:6px"><button id="recRe">按文字重新评分</button><button id="recCopy">复制给 Claude 细评</button><span class="mute" id="recHist"></span></div>
       <div id="recRes" style="margin-top:8px"></div>
@@ -985,18 +989,20 @@ function recShareText(){const s=S.find(x=>x[0]===REC.q)||S[cur];const L=REC.last
   if(L&&L.txt)t+=`\n（App 转写，可能有识别错误）${L.txt}`;
   if(P&&P.span)t+=`\n停顿：有效 ${Math.round(P.span)} 秒，停顿占 ${Math.round(P.sil/P.span*100)}%，2 秒以上 ${P.pauses.filter(p=>p.len>=2).length} 次`;
   return t}
-function recShare(){const tip=$("recShareTip");if(!REC.blob){toast("先录一遍");return}
-  const type=(REC.blob.type||"audio/mp4").split(";")[0];const file=new File([REC.blob],REC.fname||"retell.m4a",{type});const text=recShareText();
-  /* iPhone 要求分享在点按的同一刻发起，前面不能有任何等待 */
-  if(navigator.share){let ok=true;try{ok=!navigator.canShare||navigator.canShare({files:[file]})}catch(e){}
-    if(ok){tip.textContent="正在打开分享面板……";
-      navigator.share({files:[file],text}).then(()=>{tip.textContent="已分享。题号写在文件名里；Claude 那边如果没带上说明文字，点「复制给 Claude 细评」再粘贴一下。"},
-        e=>{if(e&&e.name==="AbortError"){tip.textContent="";return}recFallback(`分享没成功（${e&&e.name||"未知"}）。`)});return}}
-  recFallback("这个浏览器不能直接分享录音文件。")}
-function recFallback(why){const tip=$("recShareTip");
-  const a=document.createElement("a");a.href=REC.url;a.download=REC.fname||"retell.m4a";document.body.appendChild(a);a.click();a.remove();
-  const pwa=window.matchMedia&&matchMedia("(display-mode: standalone)").matches||navigator.standalone;
-  tip.textContent=why+(pwa?"你现在是从桌面图标打开的，这种模式下 iPhone 不能下载文件：请改用 Safari 打开这个网页再录。":`已尝试把录音下载为 ${REC.fname}；然后在 Claude 对话里添加这个文件，再点「复制给 Claude 细评」粘贴说明。`)}
+function recShare(){const tip=$("recShareTip");tip.textContent="已点击，正在准备……";
+  try{if(!REC.blob){tip.textContent="还没有录音：先点「开始录音」录一遍。";return}
+    const type=(REC.blob.type||"audio/mp4").split(";")[0];const file=new File([REC.blob],REC.fname||"retell.m4a",{type});const text=recShareText();
+    if(!navigator.share){recFallback("这个浏览器没有分享功能（微信等 App 内置浏览器常见）。");return}
+    let ok=true;try{ok=!navigator.canShare||navigator.canShare({files:[file]})}catch(e){ok=false}
+    if(!ok){recFallback("这个浏览器不支持分享录音文件。");return}
+    tip.textContent="正在打开分享面板……如果几秒后还没弹出来，请点下面的「⬇ 保存录音」。";
+    navigator.share({files:[file],text}).then(()=>{tip.textContent="已分享。Claude 那边如果没带上说明文字，点「复制给 Claude 细评」再粘贴一下。"},
+      e=>{if(e&&e.name==="AbortError"){tip.textContent="已取消分享。";return}recFallback(`分享没成功（${e&&e.name||"未知原因"}）。`)})}
+  catch(e){recFallback("出错了："+(e&&e.message||e)+"。")}}
+function recFallback(why){const tip=$("recShareTip");$("recDl").classList.add("hl");
+  const pwa=(window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone;
+  tip.textContent=why+(pwa?" 你是从桌面图标打开的，这种模式下 iPhone 不能分享或保存文件：请在 Safari 里打开这个网页再录。":" 请点「⬇ 保存录音」把文件存到手机（iPhone 会存进「文件」App 的下载文件夹），再在 Claude 对话里点 + 添加这个文件；说明文字可以点「复制给 Claude 细评」后粘贴。")}
+window.addEventListener("error",e=>{const t=document.getElementById("recShareTip");if(t&&document.getElementById("recPlay")&&!document.getElementById("recPlay").hidden)t.textContent="页面出错："+e.message})
 $("recShare").onclick=recShare;
 
 if(!SRC){$("recSr").checked=false;$("recSr").disabled=true}
