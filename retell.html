@@ -84,6 +84,8 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .rectab{width:100%;min-width:0!important;table-layout:fixed}.rectab th,.rectab td{white-space:normal!important;word-break:break-word;vertical-align:top}.rectab tr>*:first-child{width:3.2em}.rectab tr>*:nth-child(2){width:2.4em}
 .rectab td.lv{display:table-cell;border-radius:0}.recsum{font-size:15px;margin:4px 0 8px}
 .recl{margin:4px 0 8px;padding-left:22px}
+header .upd{font-size:13px;padding:4px 10px;margin-left:8px}
+header .updst{font-size:12px;color:var(--muted);margin-left:6px}
 mark.myfix{background:#fff1a8;color:inherit;border-bottom:2px solid #e0b400;border-radius:2px;padding:0 1px}
 .myerr ul{margin:4px 0 0;padding-left:20px}.myerr li{margin:4px 0;line-height:1.6}
 .myerr .bad{color:#b42318;text-decoration:line-through;text-decoration-thickness:1px}.myerr .good{color:#14663a;font-weight:600}
@@ -155,6 +157,7 @@ details.rnbg>summary .n{color:var(--muted);font-weight:400;white-space:nowrap}
   <h1>ICAO 5 级 · 故事复述练习</h1>
   <span class="sub">PEPEC 专家级第四部分 · 共 83 题，去重后 76 篇 · 虚线框是重复题</span>
   <a class="back" href="./">← 900 句复诵</a>
+  <button class="upd" id="rtUpd" type="button">⟳ 检查更新</button><span class="updst" id="rtUpdSt"><span id="verTag"></span></span>
   <span class="prog" id="prog"></span>
 </header>
 
@@ -307,7 +310,7 @@ details.rnbg>summary .n{color:var(--muted);font-weight:400;white-space:nowrap}
       <div id="recPlay" hidden style="margin-top:8px"><audio id="recAud" controls></audio>
         <div class="row" style="margin-top:6px"><button class="pri" id="recShare">📤 发给 Claude 批改</button><a id="recDl" class="btnlink">⬇ 保存录音</a></div>
         <p class="recsharetip" id="recShareTip"></p></div>
-      <p class="mute" style="margin:8px 0 0;font-size:12px">页面版本 <span id="recVer">20261108-1210</span></p>
+      <p class="mute" style="margin:8px 0 0;font-size:12px">页面版本 <span id="recVer">20261108-1220</span></p>
       <textarea id="recTxt" placeholder="转写文字会出现在这里。识别错的词可以改；没有自动转写时，也可以自己把说的内容打进来，再点「按文字重新评分」。" style="margin-top:8px;min-height:90px"></textarea>
       <div class="row" style="margin-top:6px"><button id="recRe">按文字重新评分</button><button id="recCopy">复制给 Claude 细评</button><span class="mute" id="recHist"></span></div>
       <div id="recRes" style="margin-top:8px"></div>
@@ -1044,4 +1047,7 @@ try{$("recAuto").checked=localStorage.getItem("retell.recAuto")!=="0"}catch(e){}
 $("recAuto").onchange=()=>{try{localStorage.setItem("retell.recAuto",$("recAuto").checked?"1":"0")}catch(e){}};
 
 </script>
+<script src="update.js"></script>
+<script>document.getElementById('rtUpd').onclick=function(){var st=document.getElementById('rtUpdSt'),b=this;b.disabled=true;var f=function(t){st.textContent=t};
+  if(window.icaoUpdate)window.icaoUpdate(f).then(function(x){if(!x)b.disabled=false},function(){f('更新失败，继续用本机版本');b.disabled=false});else{f('更新组件没加载上，请刷新后再试');b.disabled=false}};</script>
 <script>if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(function(){})}</script></body></html>
