@@ -84,6 +84,10 @@ h2{font-size:14px;margin:0 0 8px;letter-spacing:.04em;color:var(--muted);font-we
 .rectab{width:100%;min-width:0!important;table-layout:fixed}.rectab th,.rectab td{white-space:normal!important;word-break:break-word;vertical-align:top}.rectab tr>*:first-child{width:3.2em}.rectab tr>*:nth-child(2){width:2.4em}
 .rectab td.lv{display:table-cell;border-radius:0}.recsum{font-size:15px;margin:4px 0 8px}
 .recl{margin:4px 0 8px;padding-left:22px}
+mark.myfix{background:#fff1a8;color:inherit;border-bottom:2px solid #e0b400;border-radius:2px;padding:0 1px}
+.myerr ul{margin:4px 0 0;padding-left:20px}.myerr li{margin:4px 0;line-height:1.6}
+.myerr .bad{color:#b42318;text-decoration:line-through;text-decoration-thickness:1px}.myerr .good{color:#14663a;font-weight:600}
+.myerrdel{margin-left:8px;font-size:12px}
 .btnlink{display:inline-block;padding:8px 14px;border:1px solid var(--line);border-radius:10px;text-decoration:none;color:var(--ink)}
 .btnlink.hl{border-color:var(--accent);color:var(--accent);font-weight:600}
 .recsharetip{margin:6px 0 0;font-size:14px;color:var(--ink);background:var(--soft);border-radius:8px;padding:0 10px}.recsharetip:not(:empty){padding:8px 10px}
@@ -303,7 +307,7 @@ details.rnbg>summary .n{color:var(--muted);font-weight:400;white-space:nowrap}
       <div id="recPlay" hidden style="margin-top:8px"><audio id="recAud" controls></audio>
         <div class="row" style="margin-top:6px"><button class="pri" id="recShare">📤 发给 Claude 批改</button><a id="recDl" class="btnlink">⬇ 保存录音</a></div>
         <p class="recsharetip" id="recShareTip"></p></div>
-      <p class="mute" style="margin:8px 0 0;font-size:12px">页面版本 <span id="recVer">20261108-1015</span></p>
+      <p class="mute" style="margin:8px 0 0;font-size:12px">页面版本 <span id="recVer">20261108-1030b</span></p>
       <textarea id="recTxt" placeholder="转写文字会出现在这里。识别错的词可以改；没有自动转写时，也可以自己把说的内容打进来，再点「按文字重新评分」。" style="margin-top:8px;min-height:90px"></textarea>
       <div class="row" style="margin-top:6px"><button id="recRe">按文字重新评分</button><button id="recCopy">复制给 Claude 细评</button><span class="mute" id="recHist"></span></div>
       <div id="recRes" style="margin-top:8px"></div>
@@ -350,6 +354,7 @@ details.rnbg>summary .n{color:var(--muted);font-weight:400;white-space:nowrap}
       <div class="kw" id="kw"></div>
       <h2 style="margin-top:16px">复述范文 · <span id="mwc"></span></h2>
       <div class="orig model" id="model"></div>
+      <div id="myerr" class="myerr" hidden><h2 style="margin-top:14px">我犯过的错 <span class="mute" style="font-weight:400">范文里标黄的地方，都是我录音时说错过的</span></h2><ul id="myerrList"></ul></div>
             <h2 style="margin-top:16px">这篇的草稿纸：按 5 格记，复述时一格说一步</h2>
       <div class="tblwrap"><table class="cmp notes" id="notes5"></table></div>
       <p class="mute" style="margin:6px 0 0">考场上草稿纸就竖着写这 5 行，只写关键词和数字。复述时从上往下，每一行套一句加粗的主干句：① This story is about … ② When/While … ③ 本类关键句 ④ As a result / Then … ⑤ In the end / The cause was that …</p>
@@ -644,7 +649,7 @@ function go(i){
    $("mwc").textContent=`${n} 词 · 按每分钟 100 词约 ${Math.round(n/100*60)} 秒`;
    const esc=t=>t.replace(/&/g,"&amp;").replace(/</g,"&lt;");
    let x=esc(m);for(const [t,re] of CP[s[1]]){x=x.replace(new RegExp(re.source,"g"),w=>`\u0001${w}\u0002`)}
-   $("model").innerHTML=x.replace(/\{\{(.*?)\}\}/g,'<b class="fr">$1</b>').replace(/\u0001/g,'<u class="cp">').replace(/\u0002/g,'</u>');}
+   $("model").innerHTML=x.replace(/\{\{(.*?)\}\}/g,'<b class="fr">$1</b>').replace(/\u0001/g,'<u class="cp">').replace(/\u0002/g,'</u>');renderMyErr(s);}
   $("checks").innerHTML=CHECKS.map((c,k)=>`<label for="ck${k}"><input type="checkbox" id="ck${k}"><span><b>${c[0]}</b>${c[1]}</span></label>`).join("");
   $("tplTitle").textContent=CATS[s[1]].name+" · 5 级句型";
   $("tpl").innerHTML=CATS[s[1]].tpl.map(t=>`<li>${t}</li>`).join("")+`<li class="warn">句型只是框架，填进去的内容必须来自原文。原文没说的结果、伤亡和教训不要加。</li>`;
@@ -653,6 +658,22 @@ function go(i){
   $("srs").textContent=srsText(s[0]);
   renderList();
 }
+/* 我犯过的错：Claude 批改录音时记下的（MYERR），加上 App 录音评分标出的（本机保存） */
+const MYERR={"25": [["on a foggy day", "in foggy day", "某一天用 on a …"], ["cleared to taxi", "was cleared taxi", "cleared 后面要加 to"], ["told him to continue taxiing", "told the pilot continue to taxi", "told sb to do"], ["cleared Singapore 126 for takeoff", "gives clearance for takeoff of Singapore 126", "全程过去时；放行起飞用 cleared X for takeoff"], ["entered runway 19 Right", "enters the runway", "全程过去时"], ["the holding sign", "the stop bar", "原文是 holding sign"], ["the two aircraft collided", "two aircraft was collided", "collide 不能用被动"], ["were killed", "were died", "die 不能用被动：died / were killed"]], "30": [["regarded as the most serious incident of its kind", "considered about the most serious incident in its kind", "regarded as …；同类中用 of its kind"], ["then he forgot about the arriving aircraft", "and the controller forgot the arrival traffic", "用 but then 表示转折；forget about sth"], ["for takeoff on runway 16", "takeoff for runway 16", "cleared X for takeoff on runway …"], ["touched down", "touchdown", "这里要用动词 touched down"], ["stop short of runway 16", "told the flight 145 stopped short of 16", "told sb to + 原形；航班号前不加 the"], ["in the middle of", "at the middle of", "在中间用 in the middle"], ["so it was too late", "which is too late", "全程过去时"], ["decided to lift off early", "decided to early lifted off", "to + 原形，early 放后面"], ["missed each other by only 50 feet", "was only missed each other for 50 feet", "miss 不用被动；差多少用 by"]], "34": [["how landing lights can provide", "landing light signal can provide", "about 后面接从句要用 how"], ["but got no response", "but no response", "分句要有动词"], ["had not received the clearance to cross", "not got clearance for crossing", "过去完成时 had not received"], ["for takeoff on runway 36R", "takeoff of runway 36R", "cleared X for takeoff on runway …"], ["the Boeing 757's lights had come on and it started to move", "the Boeing 757 lights on and start to move", "分句要有动词；全程过去时"], ["there was a potential runway incursion", "they have potentially runway incursion", "there was + 形容词 potential"], ["he canceled", "they canceled", "管制员是一个人，用 he"]]};
+const MYKEY="retell.myerr.v1";
+function myErrLocal(){try{return JSON.parse(localStorage.getItem(MYKEY)||"{}")}catch(e){return {}}}
+function myErrAdd(q,list){if(!list.length)return;try{const all=myErrLocal(),L=all[q]||[];for(const x of list){const k=x[1].toLowerCase();if(!L.some(y=>y[1].toLowerCase()===k))L.push(x)}all[q]=L.slice(-30);localStorage.setItem(MYKEY,JSON.stringify(all))}catch(e){}}
+function myErrDel(q,wrong){try{const all=myErrLocal();all[q]=(all[q]||[]).filter(y=>y[1]!==wrong);localStorage.setItem(MYKEY,JSON.stringify(all))}catch(e){}}
+function markMyErr(root,phrases){
+  for(const [right,wrong] of phrases){const W=document.createTreeWalker(root,NodeFilter.SHOW_TEXT);const nodes=[];let full="";while(W.nextNode()){const n=W.currentNode;nodes.push({n,s:full.length});full+=n.data}
+    const i=full.toLowerCase().indexOf(right.toLowerCase());if(i<0)continue;const j=i+right.length;
+    for(const {n,s} of nodes){const e=s+n.data.length;if(e<=i||s>=j)continue;if(n.parentNode.closest&&n.parentNode.closest("mark.myfix"))continue;
+      const a=Math.max(i,s)-s,b=Math.min(j,e)-s;let mid=n;if(a>0)mid=n.splitText(a);if(b-a<mid.data.length)mid.splitText(b-a);
+      const m=document.createElement("mark");m.className="myfix";m.title="你说过："+wrong;mid.parentNode.replaceChild(m,mid);m.appendChild(mid)}}}
+function renderMyErr(s){const eH=t=>String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/"/g,"&quot;");const q=s[0],A=(MYERR[q]||[]).map(x=>[...x,"Claude"]),B=(myErrLocal()[q]||[]).map(x=>[...x,"App"]);const all=A.concat(B);
+  const box=$("myerr");if(!all.length){box.hidden=true;return}box.hidden=false;
+  markMyErr($("model"),A);
+  $("myerrList").innerHTML=all.map(([right,wrong,why,src])=>`<li><span class="bad">✗ ${eH(wrong)}</span> → <span class="good">✓ ${eH(right)}</span>　<span class="mute">${eH(why||"")}${src==="App"?` · App 评分<a href="#" class="myerrdel" data-w="${eH(wrong)}">移除</a>`:""}</span></li>`).join("")}
 const TOTAL=300;let tT=null,left=TOTAL,running=false,listenMsg="",sayFrom=TOTAL;
 const fmt=n=>`${Math.floor(n/60)}:${String(n%60).padStart(2,"0")}`;
 function phaseText(){if(listenMsg)return listenMsg;
@@ -986,7 +1007,7 @@ function recScore(){const s=S[cur],txt=$("recTxt").value.trim(),P=REC.pause,R=[]
   h+=`<p class="mute">评分门槛说明：五个评分项和"取最低项"来自 ICAO Doc 9835 评分量表；表里的数字门槛（原文信息点 70%、每百词错误 1.5 处、停顿 25%、每分钟 90 词等）是本程序为了自动计算定的经验值，ICAO 和 PEPEC 没有公布这类数字，考官也是听整体印象打分。</p><p class="mute">自动评分只是估算：看信息点、常见语法错误、停顿和语速，不能代替考官。想要逐句点评，点「复制给 Claude」，或直接把录音文件发给 Claude。</p>`;
   $("recRes").innerHTML=h;$("recMsg").textContent="";
   REC.last={q:s[0],t:Date.now(),lv,overall,cov,wpm,long,silR,nw,txt,marks};
-  if(!REC.id)REC.id=Date.now();if(overall!=null)recSave(s[0],{id:REC.id,t:Date.now(),o:overall,c:lv.c,s:lv.s,v:lv.v,f:lv.f});recHistUI();}
+  if(!REC.id)REC.id=Date.now();myErrAdd(s[0],marks.filter(x=>x.type==="g"&&x.fix).map(x=>[x.fix.trim(),x.old,x.why]));renderMyErr(s);if(overall!=null)recSave(s[0],{id:REC.id,t:Date.now(),o:overall,c:lv.c,s:lv.s,v:lv.v,f:lv.f});recHistUI();}
 function recHistUI(){const h=(recHist()[S[cur][0]]||[]).slice(-6).reverse();
   $("recHist").innerHTML=h.length?"这篇最近的估算："+h.map(r=>`<span class="lv lv${r.o}">${r.o}</span><span class="mute">${new Date(r.t).toLocaleDateString("zh-CN",{month:"numeric",day:"numeric"})}</span>`).join(" "):""}
 function recCopy(){const L=REC.last;if(!L){toast("先录一遍");return}
@@ -995,6 +1016,7 @@ function recCopy(){const L=REC.last;if(!L){toast("先录一遍");return}
 $("recBtn").onclick=()=>REC.mr?recStop():recStart();
 $("recRe").onclick=()=>{if(!$("recTxt").value.trim()&&!REC.pause){toast("先录音或输入文字");return}recScore()};
 $("recCopy").onclick=recCopy;
+document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest(".myerrdel");if(!a)return;e.preventDefault();myErrDel(S[cur][0],a.dataset.w);go(cur);$("answer").hidden=false});
 /* 发给 Claude：用系统分享面板把录音交给 Claude App */
 function recShareText(){const s=S.find(x=>x[0]===REC.q)||S[cur];const L=REC.last,P=REC.pause;
   let t=`请按 ICAO 5 级标准批改我的故事复述录音：Q${s[0]} ${s[2]}。`;
