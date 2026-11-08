@@ -1,8 +1,8 @@
 <!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style><link rel="manifest" href="manifest.webmanifest"><meta name="apple-mobile-web-app-capable" content="yes"><link rel="apple-touch-icon" href="../apple-touch-icon.png"><link rel="icon" href="../icon-192.png"></head><body>
 <title>ICAO OPI 口试</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Saira+Semi+Condensed:wght@500;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&family=Noto+Sans+SC:wght@400;600&display=swap">
 <style>
 /* Layout: same approach-chart paper as the 900 readback app; one training strip at a time, thumb controls at the bottom of each step */
 :root{
@@ -98,6 +98,8 @@ td b{white-space:nowrap}
 <main class="wrap" id="app" aria-live="polite"></main><p style="text-align:center"><button id="out" style="font-size:13px">退出</button></p></div>
 
 <!-- Reusable question pack: to add a topic, add one object to topics. The app code never needs to change. -->
+
+
 <script>
 const b64=s=>Uint8Array.from(atob(s),c=>c.charCodeAt(0));const norm=s=>s.toUpperCase().replace(/[^0-9A-Z]/g,'');
 async function unlock(code){const K=await fetch('keys.json',{cache:'no-cache'}).then(r=>r.json());const pw=await crypto.subtle.importKey('raw',new TextEncoder().encode(norm(code)),'PBKDF2',false,['deriveKey']);
@@ -108,7 +110,7 @@ async function unlock(code){const K=await fetch('keys.json',{cache:'no-cache'}).
 
 function app(PACK){
 'use strict';
-const QS=[];PACK.topics.forEach(t=>t.qs.forEach(q=>{q.topic=t;QS.push(q)}));
+const RM=()=>!!(typeof S!=='undefined'&&S.set&&S.set.recall);const QL=()=>RM()?QS.filter(q=>hfN(q)>0):QS;const TQ=t=>RM()?t.qs.filter(q=>hfN(q)>0):t.qs;const QS=[];PACK.topics.forEach(t=>t.qs.forEach(q=>{q.topic=t;QS.push(q)}));
 const byId=id=>QS.find(q=>q.id===id);
 const CRIT=[
  ['发音','Pronunciation','很少影响听懂。受母语影响没关系，重音和节奏要稳。'],
@@ -120,7 +122,7 @@ const CRIT=[
 ];
 const LIFE=[["Could you say that again, please?","没听清"],["Do you mean…?","确认对方意思"],["Let me put it another way.","卡词时换说法"],["What I mean is…","解释自己的意思"],["From my point of view,…","开始表达观点"],["On the other hand,…","转折"],["For example,…","举例"],["So, to sum up,…","收尾"],["Let me think for a moment.","陌生题先争取时间"],["I'm not very familiar with that, but from my experience as a 737 captain,…","不熟也继续说"],["I would follow the manual and company procedure.","不确定时不编造"]];
 const GAP=[1,3,7,14,30,60];
-const KEY='opip.v1';
+const KEY='icao-opi.v1';
 const today=()=>{const d=new Date();d.setHours(0,0,0,0);return d};
 const dstr=d=>{const z=new Date(d);return z.getFullYear()+'-'+String(z.getMonth()+1).padStart(2,'0')+'-'+String(z.getDate()).padStart(2,'0')};
 const add=(n)=>{const d=today();d.setDate(d.getDate()+n);return dstr(d)};
@@ -128,14 +130,14 @@ const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;',
 const slots=s=>esc(s).replace(/\[([^\]]+)\]/g,'<span class="slot">[$1]</span>');
 const $=s=>document.querySelector(s);
 let S={cards:{},set:{newPerDay:8,exam:'2026-11-13'},mocks:[],day:{},t:0};
-try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&x.cards){S=Object.assign(S,x);}}catch(e){}
+try{const x=JSON.parse(localStorage.getItem(KEY)||'null');if(x&&x.cards){S=Object.assign(S,x);if(!S.set.exam)S.set.exam='2026-11-13'}}catch(e){}
 let dbDoc=null,sample=null,syncTxt='本机保存',wTimer=null;
 function save(){S.t=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(dbDoc){clearTimeout(wTimer);wTimer=setTimeout(async()=>{try{await dbDoc.set(JSON.parse(JSON.stringify(S)));syncTxt='已同步到账号'}catch(e){syncTxt='同步失败，已存本机'}const el=$('#sync');if(el)el.textContent=syncTxt},1200)}}
 function card(id){return S.cards[id]||(S.cards[id]={b:-1,due:'',lapse:0,weak:[],my:''})}
 function isNew(id){return card(id).b<0}
 function isDue(id){const c=card(id);return c.b>=0&&c.due<=dstr(today())}
 function newToday(){const d=dstr(today());return (S.day[d]||0)}
-function queue(){const due=QS.filter(q=>isDue(q.id)).sort((a,b)=>card(a.id).due<card(b.id).due?-1:1);const room=Math.max(0,(+S.set.newPerDay||3)-newToday());return due.concat(QS.filter(q=>isNew(q.id)).sort((a,b)=>hfN(b)-hfN(a)).slice(0,room))}
+function queue(){const due=QL().filter(q=>isDue(q.id)).sort((a,b)=>card(a.id).due<card(b.id).due?-1:1);const room=Math.max(0,(+S.set.newPerDay||3)-newToday());return due.concat(QL().filter(q=>isNew(q.id)).sort((a,b)=>hfN(b)-hfN(a)).slice(0,room))}
 function rate(id,r){
  const c=card(id),wasNew=c.b<0;let gap;
  if(r===0){c.b=Math.max(0,c.b-1);c.lapse++;gap=0}
@@ -154,9 +156,17 @@ const hfN=q=>{if(q._h!=null)return q._h;if(!q.hf||!PACK.sessions)return q._h=0;c
 const hfTag=q=>{const n=hfN(q);return n>=8?'<span class="hot h3">★★★ 高频 '+n+' 场</span>':n>=4?'<span class="hot h2">★★ 高频 '+n+' 场</span>':n>=1?'<span class="hot h1">★ 考过 '+n+' 场</span>':''};
 const topicN=t=>{const a=t.qs.filter(q=>q.hf).map(q=>new RegExp(q.hf,'i'));return (PACK.sessions||[]).filter(x=>x.q.some(q=>a.some(r=>r.test(q)))).length};
 /* speech */
-function enVoices(){try{return speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang))}catch(e){return []}}
-function bestVoice(vs){if(!vs.length)return null;const us=vs.filter(v=>/en[-_]US/i.test(v.lang)),L=us.length?us:vs;return L.find(v=>/natural|neural|premium|enhanced|google|samantha/i.test(v.name))||L[0]}
-function speak(text,onfail){try{if(!window.speechSynthesis||!window.SpeechSynthesisUtterance){onfail&&onfail();return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const vs=enVoices(),st=(typeof S!=='undefined'&&S.set)||{},vn=st.voice?vs.find(x=>x.name===st.voice):bestVoice(vs);if(vn){u.voice=vn;u.lang=vn.lang}else u.lang='en-US';u.rate=st.rate||.92;u.onerror=()=>{onfail&&onfail()};speechSynthesis.speak(u)}catch(e){onfail&&onfail()}}
+const NOVELTY=/\b(Albert|Bad News|Bahh|Bells|Boing|Bubbles|Cellos|Wobble|Fred|Good News|Jester|Junior|Kathy|Organ|Superstar|Trinoids|Whisper|Zarvox|Ralph|Grandma|Grandpa|Eddy|Flo|Reed|Rocko|Sandy|Shelley|Deranged|Hysterical|Pipe Organ)\b/i;
+function enVoices(){try{return speechSynthesis.getVoices().filter(v=>/^en[-_]/i.test(v.lang)&&!NOVELTY.test(v.name))}catch(e){return []}}
+function bestVoice(vs){if(!vs.length)return null;const sc=v=>{let n=0;if(/en[-_]US/i.test(v.lang))n+=40;else if(/en[-_]GB/i.test(v.lang))n+=30;if(/premium|enhanced|natural|neural|高品质|增强/i.test(v.name))n+=25;if(/Samantha|Ava|Allison|Susan|Zoe|Nicky|Evan|Nathan|Joelle|Tom|Alex|Aaron|Daniel|Serena|Kate|Jenny|Aria|Guy|Google US English|Google UK English/i.test(v.name))n+=20;if(v.localService)n+=2;return n};return vs.slice().sort((a,b)=>sc(b)-sc(a))[0]}
+const AV=[[/\bFL ?(\d)(\d)(\d)\b/g,'flight level $1 $2 $3'],[/\b(\d)(\d)(\d)(\d) feet per minute\b/g,'$1$2$3$4 feet per minute'],[/\b7700\b/g,'seven seven zero zero'],[/\b7600\b/g,'seven six zero zero'],[/\b7500\b/g,'seven five zero zero'],[/\b121\.5\b/g,'one two one decimal five'],[/\b406\b/g,'four zero six'],
+[/\b737-800\b/g,'seven three seven eight hundred'],[/\b737\b/g,'seven three seven'],[/\b747s?\b/g,'seven four seven'],[/\bA320\b/g,'A three twenty'],[/\bA350\b/g,'A three fifty'],[/\bA380\b/g,'A three eighty'],[/\bB787\b/g,'B seven eight seven'],[/\bC919\b/g,'C nine one nine'],[/\bCFM56-7B\b/g,'C F M fifty-six seven B'],[/\bLEAP-1([BC])\b/g,'leap one $1'],[/\bCCAR-121\b/g,'C CAR one twenty-one'],[/\bDoc 9284\b/g,'doc nine two eight four'],
+[/\bV1\b/g,'V one'],[/\bVR\b/g,'V R'],[/\bVref\b/g,'V ref'],[/\bVapp\b/g,'V app'],[/\bN1\b/g,'N one'],[/\bN2\b/g,'N two'],[/\bCAT IIIB\b/g,'cat three B'],[/\bCAT IIIC\b/g,'cat three C'],[/\bCAT III\b/g,'cat three'],[/\bCAT II\b/g,'cat two'],
+[/\bNOTOC\b/g,'no-tock'],[/\bSNOWTAM\b/g,'snow-tam'],[/\bASHTAM\b/g,'ash-tam'],[/\bNOTAMs?\b/g,m=>m.endsWith('s')?'no-tams':'no-tam'],[/\bATIS\b/g,'ay-tiss'],[/\bTCAS\b/g,'tee-cas'],[/\bCFIT\b/g,'see-fit'],[/\bTOGA\b/g,'toe-ga'],[/\bPAPI\b/g,'pah-pee'],[/\bETOPS\b/g,'ee-tops'],[/\bRNAV\b/g,'are-nav'],[/\bHUD\b/g,'hud'],[/\bPAN PAN\b/gi,'pan pan'],[/\bMAYDAY\b/g,'mayday'],[/\bSIGMETs?\b/g,'sig-met'],[/\bMETAR\b/g,'mee-tar'],[/\bTAF\b/g,'taff'],[/\bCOMAC\b/g,'co-mac'],[/\bQAR\b/g,'Q A R'],
+[/\b(QNH|QFE|EGPWS|GPWS|CDFA|MEL|CDL|EFB|FMC|QRH|ILS|VOR|RNP|PBN|CPDLC|ATC|APU|EBT|CBTA|CRM|SOPs?|CG|MSA|RVR|RVSM|DME|ELT|PBE|UAV|GNSS|GPS|IMC|VMC|PF|PM|TA|RA|EGT|FCOM|FCTM|AOA|ADS-B|CVR|FDR|ERG|NITS|TEM|PA|CB|CBs|EFIS|PFD|ND|IAS|MAX|AI|VR|AR|SAF|ACARS|VHF|HF|UN|PPE|LLWAS|TDWR|UPRT|ATPL|CI|RTO|RT|AIS|AIP|IFR|VFR|DDS|GenDec|EICAS)\b/g,m=>m==='MAX'?'max':m==='GenDec'?'gen dec':m==='SOPs'?'S O Ps':m==='CBs'?'C Bs':m.replace(/-/g,'').split('').join(' ')],
+[/°/g,' degrees'],[/(\d)\s?ft\b/g,'$1 feet'],[/(\d)\s?kg\b/g,'$1 kilograms'],[/(\d)\s?mm\b/g,'$1 millimeters'],[/(\d)\s?m\b/g,'$1 meters'],[/(\d)\s?mph\b/g,'$1 miles per hour']];
+function aviaSay(t){t=String(t||'');AV.forEach(([r,v])=>{t=t.replace(r,v)});return t}
+function speak(text,onfail){text=aviaSay(text);try{if(!window.speechSynthesis||!window.SpeechSynthesisUtterance){onfail&&onfail();return}speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(text);const vs=enVoices(),st=(typeof S!=='undefined'&&S.set)||{},vn=(st.voice&&vs.find(x=>x.name===st.voice))||bestVoice(vs);if(vn){u.voice=vn;u.lang=vn.lang}else u.lang='en-US';u.rate=st.rate||.92;u.onerror=()=>{onfail&&onfail()};speechSynthesis.speak(u)}catch(e){onfail&&onfail()}}
 /* timer */
 let tick=null;
 function stopTimer(){if(tick){clearInterval(tick);tick=null}}
@@ -164,28 +174,28 @@ function timerHTML(sec){return '<div class="timer" id="tm"><div class="tnum" id=
 function startTimer(sec){stopTimer();let left=sec;const el=$('#tm');if(!el)return;const paint=()=>{const n=$('#tn'),b=$('#tb');if(!n)return stopTimer();n.textContent=left>=0?left:'+'+(-left);b.style.width=Math.max(0,left/sec*100)+'%';el.classList.toggle('over',left<0)};paint();tick=setInterval(()=>{left--;paint()},1000)}
 /* nav */
 let view='module';
-const TABS=[['module','模块速通'],['today','今日训练'],['mock','模拟口试'],['hot','高频题'],['pic','看图题'],['chain','追问训练'],['cold','陌生题'],['real','真题频率'],['bank','题库'],['cov','覆盖表'],['tts','朗读设置'],['std','5 级标准']];
-function nav(){$('#nav').innerHTML=TABS.map(([k,l])=>'<button data-nav="'+k+'"'+(view===k?' aria-current="page"':'')+'>'+l+'</button>').join('')}
-function go(v){try{localStorage.setItem('opip.view',v)}catch(e){}stopTimer();try{speechSynthesis&&speechSynthesis.cancel()}catch(e){}view=v;nav();R[v]();window.scrollTo(0,0)}
-document.addEventListener('click',e=>{const n=e.target.closest('[data-nav]');if(n)go(n.dataset.nav)});
+const TABS=[['module','模块速通'],['today','今日训练'],['mock','模拟口试'],['ans','高频答案本'],['memo','速记卡'],['hot','高频题'],['pic','看图题'],['chain','追问训练'],['cold','陌生题'],['real','真题频率'],['bank','题库'],['cov','覆盖表'],['tts','设置和备份'],['std','5 级标准']];
+function nav(){$('#nav').innerHTML='<button id="rmt" aria-pressed="'+RM()+'" style="white-space:nowrap;font-weight:700;'+(RM()?'background:#0B6E8A;color:#fff;border-color:#0B6E8A':'')+'">'+(RM()?'✓ 只看回忆题':'只看回忆题')+'</button>'+TABS.map(([k,l])=>'<button data-nav="'+k+'"'+(view===k?' aria-current="page"':'')+'>'+l+'</button>').join('')+''}
+function go(v){stopTimer();try{speechSynthesis&&speechSynthesis.cancel()}catch(e){}view=v;nav();R[v]();window.scrollTo(0,0)}
+document.addEventListener('click',e=>{if(e.target.closest('#rmt')){S.set.recall=!RM();save();go(view);return}const n=e.target.closest('[data-nav]');if(n)go(n.dataset.nav)});
 const R={};
 /* module */
-let curT=0;try{curT=Math.min(PACK.topics.length-1,+localStorage.getItem('opip.topic')||0)}catch(e){}
+let curT=0;try{curT=Math.min(PACK.topics.length-1,+localStorage.getItem('icao-opi.topic')||0)}catch(e){}
 function modState(id){S.mod=S.mod||{};return S.mod[id]||(S.mod[id]={a:false,b:0,c:0})}
 R.module=function(){
  const t=PACK.topics[curT],m=modState(t.id),E=PACK.engines;
- const groups=Object.keys(E).map(k=>[k,t.qs.filter(q=>q.engine===k)]).filter(g=>g[1].length);
- $('#app').innerHTML='<div class="chips" role="group" aria-label="选择模块">'+PACK.topics.map((x,i)=>[x,i,topicN(x)]).sort((a,b)=>b[2]-a[2]).map(([x,i,n])=>'<button data-t="'+i+'" aria-pressed="'+(i===curT)+'">'+(n>=12?'★★★ ':n>=7?'★★ ':'')+esc(x.title)+' · '+n+'场</button>').join('')+'</div><header style="display:grid;gap:6px"><div class="eyebrow">'+esc(t.section)+' · '+esc(t.title)+'</div><h1 style="font-size:32px">'+t.qs.length+' 道题，还是这 1 个结构</h1><p class="muted">所有答案都是 1-3-1。题型和句式每个模块都一样，只需要记蓝色的词。</p></header>'+STRUCT+
- '<div class="sheet"><div class="row"><button class="primary grow" id="sb">'+(m.b?'再判一轮题型（上次 '+m.b+' / '+t.qs.length+'）':'第 1 步：听题判题型（约 2 分钟）')+'</button><button class="grow" id="sc">'+(m.c?'再练填词开口（已完成 '+m.c+' 次）':'第 2 步：填词开口（约 8 分钟）')+'</button></div><p class="small muted">两步做完，再去“今日训练”做间隔复习，用“模拟口试”检验。</p></div>'+
+ const groups=Object.keys(E).map(k=>[k,TQ(t).filter(q=>q.engine===k)]).filter(g=>g[1].length);
+ $('#app').innerHTML='<div class="chips" role="group" aria-label="选择模块">'+PACK.topics.map((x,i)=>[x,i,topicN(x)]).sort((a,b)=>b[2]-a[2]).map(([x,i,n])=>'<button data-t="'+i+'" aria-pressed="'+(i===curT)+'">'+(n>=12?'★★★ ':n>=7?'★★ ':'')+esc(x.title)+' · '+n+'场</button>').join('')+'</div><header style="display:grid;gap:6px"><div class="eyebrow">'+esc(t.section)+' · '+esc(t.title)+'</div><h1 style="font-size:32px">'+TQ(t).length+' 道题，还是这 1 个结构</h1><p class="muted">所有答案都是 1-3-1。题型和句式每个模块都一样，只需要记蓝色的词。</p></header>'+STRUCT+
+ '<div class="sheet"><div class="row"><button class="primary grow" id="sb">'+(m.b?'再判一轮题型（上次 '+m.b+' / '+TQ(t).length+'）':'第 1 步：听题判题型（约 2 分钟）')+'</button><button class="grow" id="sc">'+(m.c?'再练填词开口（已完成 '+m.c+' 次）':'第 2 步：填词开口（约 8 分钟）')+'</button></div><p class="small muted">两步做完，再去“今日训练”做间隔复习，用“模拟口试”检验。</p></div>'+
  '<section class="sheet" style="gap:0"><h3 style="font-size:18px;margin-bottom:4px">本模块题型的 1-3-1</h3><div class="tbl" style="border:0"><table><thead><tr><th>题型</th><th>1 开头</th><th>3 要点</th><th>1 收尾</th><th>题数</th></tr></thead><tbody>'+
  groups.map(([k,qs])=>'<tr><td><b>'+E[k].name+'</b></td><td>'+esc(E[k].one)+'</td><td>'+esc(E[k].three)+'</td><td>'+esc(E[k].close)+'</td><td class="mono">'+qs.length+'</td></tr>').join('')+'</tbody></table></div></section>'+
- '<section class="sheet" style="gap:0"><h3 style="font-size:18px">通用句式和本模块填词</h3>'+groups.map(([k,qs])=>'<details class="mapr"'+(k==='RISK'?' open':'')+'><summary>'+E[k].name+' · <span class="mono small muted">'+esc(E[k].use)+'</span></summary><div style="display:grid;gap:10px;padding-top:8px"><p class="frame">'+frameHTML(k)+'</p><p class="zh">'+esc(E[k].zh||'')+'</p>'+qs.slice().sort((a,b)=>hfN(b)-hfN(a)).map(q=>'<div><p class="small muted">'+hfTag(q)+' '+esc(q.q)+'</p>'+(q.qz?'<p class="zh" style="margin-top:4px">'+esc(q.qz)+'</p>':'')+'<p>'+frameHTML(k,q.fill)+'</p><p class="zh">'+esc(q.zh)+'</p></div>').join('')+'</div></details>').join('')+'</section>';
- document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{curT=+b.dataset.t;try{localStorage.setItem('opip.topic',curT)}catch(e){}R.module();window.scrollTo(0,0)});
- $('#sb').onclick=()=>modB(shuffle(t.qs),0,0);$('#sc').onclick=()=>modC(shuffle(t.qs),0);
+ '<section class="sheet" style="gap:0"><h3 style="font-size:18px">通用句式和本模块填词</h3>'+groups.map(([k,qs])=>'<details class="mapr"'+(k==='RISK'?' open':'')+'><summary>'+E[k].name+' · <span class="mono small muted">'+esc(E[k].use)+'</span></summary><div style="display:grid;gap:10px;padding-top:8px"><p class="frame">'+frameHTML(k)+'</p><p class="zh">'+esc(E[k].zh||'')+'</p>'+qs.slice().sort((a,b)=>hfN(b)-hfN(a)).map(q=>'<div><p class="small muted">'+hfTag(q)+' '+esc(q.q)+'</p>'+(q.qz?'<p class="zh" style="margin-top:4px">'+esc(q.qz)+'</p>':'')+'<p>'+(q.custom?esc(q.model):frameHTML(k,q.fill))+'</p><p class="zh">'+esc(q.zh)+'</p></div>').join('')+'</div></details>').join('')+'</section>';
+ document.querySelectorAll('[data-t]').forEach(b=>b.onclick=()=>{curT=+b.dataset.t;try{localStorage.setItem('icao-opi.topic',curT)}catch(e){}R.module();window.scrollTo(0,0)});
+ $('#sb').onclick=()=>modB(shuffle(TQ(t)),0,0);$('#sc').onclick=()=>modC(shuffle(TQ(t)),0);
 };
 function modB(list,i,score){
  const t=PACK.topics[curT],E=PACK.engines;
- if(i>=list.length){const m=modState(t.id);m.b=score;save();$('#app').innerHTML='<section class="sheet"><h2>判对 '+score+' / '+list.length+'</h2><p class="muted">'+(score===list.length?'题型已经能判准了，接着练开口。':'再来一轮，判准后开口会快很多。')+'</p><div class="row"><button class="primary grow" id="nx">'+(score===list.length?'第 2 步：填词开口':'再判一轮')+'</button><button class="grow" data-nav="module">回到模块</button></div></section>';$('#nx').onclick=()=>score===list.length?modC(shuffle(t.qs),0):modB(shuffle(t.qs),0,0);return}
+ if(i>=list.length){const m=modState(t.id);m.b=score;save();$('#app').innerHTML='<section class="sheet"><h2>判对 '+score+' / '+list.length+'</h2><p class="muted">'+(score===list.length?'题型已经能判准了，接着练开口。':'再来一轮，判准后开口会快很多。')+'</p><div class="row"><button class="primary grow" id="nx">'+(score===list.length?'第 2 步：填词开口':'再判一轮')+'</button><button class="grow" data-nav="module">回到模块</button></div></section>';$('#nx').onclick=()=>score===list.length?modC(shuffle(TQ(t)),0):modB(shuffle(TQ(t)),0,0);return}
  const q=list[i];
  $('#app').innerHTML='<section class="sheet"><div class="small muted mono">判题型 '+(i+1)+' / '+list.length+'</div><div id="qbox" class="q">'+esc(q.q)+'</div><div class="row"><button id="play">▶ 听题</button></div><div class="opt">'+Object.keys(E).map(k=>'<button data-e="'+k+'">'+E[k].name+'：'+esc(E[k].one)+' → '+esc(E[k].three)+'</button>').join('')+'</div><div id="res"></div></section>';
  $('#play').onclick=()=>speak(q.q);
@@ -196,16 +206,16 @@ function modC(list,i){
  if(i>=list.length){const m=modState(t.id);m.c++;save();$('#app').innerHTML='<section class="sheet"><h2>这个模块练完一遍了</h2><p class="muted">现在试着不看提示答题。</p><div class="row"><button class="primary grow" data-nav="mock">模拟口试</button><button class="grow" data-nav="today">今日训练</button></div></section>';return}
  const q=list[i],E=PACK.engines[q.engine];
  $('#app').innerHTML='<section class="sheet"><div class="small muted mono">填词开口 '+(i+1)+' / '+list.length+' · '+E.name+'</div><div class="q" style="font-size:18px">'+esc(q.q)+'</div>'+(q.qz?'<p class="zh" style="margin-top:4px">'+esc(q.qz)+'</p>':'')+'<p class="frame" id="fr">'+frameHTML(q.engine,q.fill,'blank')+'</p>'+timerHTML(40)+'<div class="row"><button class="primary grow" id="go1">开始说</button><button class="grow" id="rv">看填词</button></div><div class="row"><button class="grow" id="nx">下一题</button></div></section>';
- $('#go1').onclick=()=>startTimer(40);$('#rv').onclick=()=>{$('#fr').innerHTML=frameHTML(q.engine,q.fill)+'<span class="zh" style="display:block;margin-top:10px">'+esc(q.zh)+'</span>'};$('#nx').onclick=()=>modC(list,i+1);
+ $('#go1').onclick=()=>startTimer(40);$('#rv').onclick=()=>{$('#fr').innerHTML=(q.custom?esc(q.model):frameHTML(q.engine,q.fill))+'<span class="zh" style="display:block;margin-top:10px">'+esc(q.zh)+'</span>'};$('#nx').onclick=()=>modC(list,i+1);
 }
 /* today */
-function known(){return QS.filter(q=>card(q.id).b>=2).length}
+function known(){return QL().filter(q=>card(q.id).b>=2).length}
 R.today=function(){
- const q=queue(),due=QS.filter(x=>isDue(x.id)).length,nw=q.length-due;
+ const q=queue(),due=QL().filter(x=>isDue(x.id)).length,nw=q.length-due;
  let exam='';if(S.set.exam){const n=Math.round((new Date(S.set.exam+'T00:00:00')-today())/864e5);exam=n>=0?'距考试 '+n+' 天':''}
  $('#app').innerHTML=
- '<header style="display:grid;gap:6px"><div class="eyebrow">ICAO LEVEL 5 · OPI · 共 '+QS.length+' 题</div><h1 style="font-size:32px">今天只练要开口的题</h1><p class="muted">学完模块速通后，用这里保持记忆。到期的题先开口，再看句式，再接追问。</p></header>'+
- '<div class="stat"><div><b>'+due+'</b><span>到期复习</span></div><div><b>'+nw+'</b><span>今日新题</span></div><div><b>'+known()+' / '+QS.length+'</b><span>已掌握</span></div></div>'+
+ '<header style="display:grid;gap:6px"><div class="eyebrow">ICAO LEVEL 5 · OPI · 共 '+QL().length+' 题</div><h1 style="font-size:32px">今天只练要开口的题</h1><p class="muted">学完模块速通后，用这里保持记忆。到期的题先开口，再看句式，再接追问。</p></header>'+
+ '<div class="stat"><div><b>'+due+'</b><span>到期复习</span></div><div><b>'+nw+'</b><span>今日新题</span></div><div><b>'+known()+' / '+QL().length+'</b><span>已掌握</span></div></div>'+
  (q.length?'<div class="row"><button class="primary grow" id="start">开始今日 '+q.length+' 题（约 '+Math.ceil(q.length*4)+' 分钟）</button></div>':'<div class="sheet"><h3>今天的题做完了</h3><p class="muted">明天再来效果更好。想多练可以做一轮模拟口试。</p><div class="row"><button data-nav="mock" class="primary">模拟口试</button></div></div>')+
  '<div class="sheet"><label class="f">每天新题数<input type="number" id="np" min="1" max="20" value="'+esc(S.set.newPerDay)+'"></label><label class="f">考试日期（设置后复习会排在考前）<input type="date" id="ex" value="'+esc(S.set.exam)+'"></label>'+(exam?'<p class="small muted">'+exam+'</p>':'')+'<p class="sync" id="sync">'+esc(syncTxt)+'</p></div>';
  const st=$('#start');if(st)st.onclick=()=>train(q,0);
@@ -220,7 +230,7 @@ function train(list,i){
  let st=0;
  const head=(t,sub)=>'<div class="small muted mono">第 '+(i+1)+' / '+list.length+' 题 · '+esc(q.topic.title)+' · 书 p.'+q.p+'</div><div class="steps">'+seq.map((_,k)=>'<i class="'+(k<=st?'on':'')+'"></i>').join('')+'</div><div class="steptitle"><h2>'+t+'</h2><span class="engine">'+esc(PACK.engines[q.engine].name)+'</span></div>'+(sub?'<p class="small muted">'+sub+'</p>':'');
  const next=()=>{st++;draw()};
- const skel=()=>'<p class="frame">'+frameHTML(q.engine,q.fill)+'</p><p class="zh">'+esc(q.zh)+'</p>';
+ const skel=()=>'<p class="frame">'+(q.custom?esc(q.model):frameHTML(q.engine,q.fill))+'</p><p class="zh">'+esc(q.zh)+'</p>';
  function draw(){
   stopTimer();const s=seq[st];window.scrollTo(0,0);
   if(s==='cold'){
@@ -229,7 +239,7 @@ function train(list,i){
    const show=()=>{$('#qbox').className='q';$('#qbox').textContent=q.q};
    $('#play').onclick=()=>{speak(q.q,show);startTimer(45)};$('#show').onclick=show;$('#go').onclick=next;
   }else if(s==='learn'){
-   $('#app').innerHTML='<section class="sheet">'+head('看句式','记住蓝色的词就够了，其余部分每个模块都一样。范文只作参考，不用背。')+hfTag(q)+'<div class="q" style="font-size:17px">'+esc(q.q)+'</div>'+(q.qz?'<p class="zh" style="margin-top:4px">'+esc(q.qz)+'</p>':'')+''+(q.alt?'<p class="alt">考官还可能问：'+esc(q.alt)+'</p>':'')+skel()+
+   $('#app').innerHTML='<section class="sheet">'+head('看句式','记住蓝色的词就够了，其余部分每个模块都一样。范文只作参考，不用背。')+hfTag(q)+srcHTML(q)+memBox(q)+'<div class="q" style="font-size:17px">'+esc(q.q)+'</div>'+(q.qz?'<p class="zh" style="margin-top:4px">'+esc(q.qz)+'</p>':'')+variantsHTML(q,true)+(q.alt?'<p class="alt">考官还可能问：'+esc(q.alt)+'</p>':'')+skel()+
    (q.own?'<label class="f"><b>写下你自己的真实经历（考场讲自己的最稳）</b><textarea id="my" placeholder="时间、航线、发生什么、你怎么做、结果">'+esc(c.my)+'</textarea></label>':'')+
    '<div class="chunks">'+q.chunks.map(([a,b])=>'<div><b>'+esc(a)+'</b><span>'+esc(b)+'</span></div>').join('')+'</div>'+
    '<details><summary>5 级范文和中文</summary><div style="display:grid;gap:10px;padding-top:8px"><div class="row"><button id="pm">▶ 听范文</button></div><p class="model">'+slots(q.model)+'</p><p class="zh">'+slots(q.zh)+'</p></div></details>'+(q.ext?'<details><summary>展开版（再说 30–60 秒）</summary><p class="model" style="padding-top:8px">'+esc(q.ext)+'</p>'+(q.extZh?'<p class="zh">'+esc(q.extZh)+'</p>':'')+'</details>':'')+
@@ -237,15 +247,15 @@ function train(list,i){
    '<div class="row"><button class="primary grow" id="go">记住了，继续</button></div></section>';
    $('#pm').onclick=()=>speak(q.model.replace(/\[[^\]]+\]/g,'…'));
    const my=$('#my');if(my)my.onchange=()=>{c.my=my.value;save()};
-   $('#go').onclick=next;
+   $('#go').onclick=next;bindLinked(list,i);
   }else if(s==='again'||s==='faster'){
    const sec=s==='again'?60:40;
    $('#app').innerHTML='<section class="sheet">'+head(s==='again'?'看句式说 60 秒':'同样内容压到 40 秒',s==='again'?'照句式说完整，再自己加一点细节。':'内容不变，只是说得更顺。这一步最能练流利度。')+'<div class="q" style="font-size:17px">'+esc(q.q)+'</div>'+(q.qz?'<p class="zh" style="margin-top:4px">'+esc(q.qz)+'</p>':'')+''+skel()+timerHTML(sec)+'<div class="row"><button class="primary grow" id="tb2">开始计时</button><button class="grow" id="go">说完了</button></div></section>';
    $('#tb2').onclick=()=>startTimer(sec);$('#go').onclick=next;
   }else if(s==='probe'){
-   const f=q.follow[Math.floor(Math.random()*q.follow.length)];
+   const f=pickF(q);if(!f){next();return}
    $('#app').innerHTML='<section class="sheet">'+head('接追问','5 级看的是回应是否立即、恰当、有信息量。听到就答，没听清就用救场句。')+'<div id="qbox" class="hiddenq">追问已隐藏</div><div class="row"><button class="primary grow" id="play">▶ 听追问</button><button id="show">看文字</button></div>'+timerHTML(25)+
-   '<details><summary>答题提示和中文</summary><p class="small" style="padding-top:6px">'+esc(f.hint)+'</p>'+(f.qz?'<p class="zh">追问：'+esc(f.qz)+'</p><p class="zh">提示：'+esc(f.hz)+'</p>':'')+'</details><div class="row"><button class="grow" id="go">答完了，打分</button></div></section>';
+   '<details><summary>'+((q.fa||{})[f.q]?'参考答案和中文':'答题提示和中文')+'</summary>'+((q.fa||{})[f.q]?'<p class="small" style="padding-top:6px"><button class="small" data-sayt="'+esc(q.fa[f.q][0])+'" style="min-width:44px;padding:4px 10px;margin-right:6px">▶</button>'+esc(q.fa[f.q][0])+'</p><p class="zh">'+esc(q.fa[f.q][1])+'</p>':'<p class="small" style="padding-top:6px">'+esc(f.hint)+'</p>')+(f.qz?'<p class="zh">追问：'+esc(f.qz)+'</p>'+((q.fa||{})[f.q]?'':'<p class="zh">提示：'+esc(f.hz)+'</p>'):'')+'</details><div class="row"><button class="grow" id="go">答完了，打分</button></div></section>';
    const show=()=>{$('#qbox').className='q';$('#qbox').textContent=f.q};
    $('#play').onclick=()=>{speak(f.q,show);startTimer(25)};$('#show').onclick=show;$('#go').onclick=next;
   }else{
@@ -279,9 +289,9 @@ R.mock=function(){
  const last=S.mocks[S.mocks.length-1];
  $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">MOCK OPI</div><h1 style="font-size:32px">模拟口试</h1><p class="muted">靠听作答，中途不看答案。结束后按六项自评，总评取最低项。</p></header>'+
  '<div class="sheet"><h3 style="font-size:18px">真题整场</h3><p class="small muted">按回忆的出题顺序答一场。每题 45 秒。这是检验陌生题开口的最好方式。</p><label class="f">选择场次<select id="ms2" style="font:inherit;padding:10px;background:var(--paper);color:var(--ink);border:1px solid var(--rule)"><option value="-1">随机一场</option>'+SES.map((x,i)=>'<option value="'+i+'">'+esc(x.n)+' · '+x.q.length+' 题</option>').join('')+'</select></label><div class="row"><button class="primary grow" id="ss">开始这场</button></div></div>'+
- '<div class="sheet"><h3 style="font-size:18px">已学题抽查</h3><p class="small muted">从已整理的 '+QS.length+' 题随机抽，每题加一个追问。</p><label class="f">题数<input type="number" id="mn" min="1" max="'+QS.length+'" value="'+Math.min(5,QS.length)+'"></label><div class="row"><button class="grow" id="ms">开始抽查</button></div></div>'+
+ '<div class="sheet"><h3 style="font-size:18px">已学题抽查</h3><p class="small muted">从已整理的 '+QL().length+' 题随机抽，每题加一个追问。</p><label class="f">题数<input type="number" id="mn" min="1" max="'+QL().length+'" value="'+Math.min(5,QL().length)+'"></label><div class="row"><button class="grow" id="ms">开始抽查</button></div></div>'+
  (last?'<div class="sheet"><h3 style="font-size:18px">上次自评</h3><p>'+esc(last.date)+' · 总评 <b>'+last.overall+' 级</b></p><p class="small muted">最低项：'+esc(last.low.join('、'))+'</p></div>':'');
- $('#ms').onclick=()=>{const n=Math.max(1,Math.min(QS.length,+$('#mn').value||5));mockQ(shuffle(QS).slice(0,n),0,false)};
+ $('#ms').onclick=()=>{const n=Math.max(1,Math.min(QL().length,+$('#mn').value||5));mockQ(shuffle(QL()).slice(0,n),0,false)};
  $('#ss').onclick=()=>{let i=+$('#ms2').value;if(i<0)i=Math.floor(Math.random()*SES.length);const P=PICS[Math.floor(Math.random()*PICS.length)];mockQ(SES[i].q.filter(x=>!/^\(Picture/.test(x)).map(x=>({q:x,follow:[]})).concat([{q:P.qs[0],img:P.img,follow:[]}]),0,false)};
 };
 const TP=[['除冰和积冰',/\b(ic(e|ing)\b|de-?ice|anti-?ice|hold-?over)/i,'ice'],['危险品',/dangerous goods?|lithium|power bank|NOTOC|Emergency Response Guid|dangerous luggage/i,'dg'],['短窄跑道',/short and narrow/i,'rwy'],['GPWS / EGPWS',/GPWS/i,'gpws'],['起飞性能和构型',/takeoff performance|flaps? setting|takeoff configuration|assumed temperature|contaminated/i,'tp'],['水上迫降',/ditching/i,'ditch'],['雷击和雷暴',/lightning|thunderstorm/i,'cb'],['紧急撤离',/evacuation/i,'evac'],['疲劳和值勤',/fatigue|duty time/i,'fat'],['SOP / CRM / 协作',/\bSOP\b|\bCRM\b|cooperat|task sharing|call-outs/i,'sop'],['本机介绍和设备',/your aircraft|your B737|your cockpit|your cabin/i,'my'],['载重表和重心',/load(ing)? sheet|\bCG\b/i,'abbr'],['跑道冲出',/overrun|excursion|run(ning)? off|skidding/i,'rwy'],['跑道侵入',/incursion/i,'ri'],['稳定进近和复飞',/stable|missed approach|go around|visual approach/i,'appr'],['TCAS 和相撞',/TCAS|mid-air|near miss/i,'abbr'],['灯光',/\blights?\b|PAPI|lighting/i,'my'],['培训和 EBT',/(?<!goods |good |evacuation )training|EBT|flight skills/i,'tr'],['燃油',/fuel polic|minimum fuel|fuel emergency|fuel endurance/i,'fuel'],['风切变',/wind shear/i,'ws'],['颠簸和尾流',/turbulence/i,'turb'],['缩写（其他）',/\b(MEL|CDL|CDFA|RNP|RNAV|EFB|HUD|QAR|ELT|FOI|RVSM|ATIS|GNSS|CPDLC|UAV)\b/,'abbr']];
@@ -296,7 +306,7 @@ R.real=function(){
 function mockQ(list,i,isF){
  stopTimer();
  if(i>=list.length)return mockEnd(list);
- const q=list[i],hasF=q.follow&&q.follow.length,fq=isF?q.follow[Math.floor(Math.random()*q.follow.length)].q:q.q,sec=isF?25:(hasF?60:45);
+ const q=list[i],hasF=!!pickF(q),fq=isF&&hasF?pickF(q).q:q.q,sec=isF?25:(hasF?60:45);
  $('#app').innerHTML='<section class="sheet"><div class="small muted mono">第 '+(i+1)+' / '+list.length+' 题'+(isF?' · 追问':'')+'</div>'+(q.img?'<img class="pimg" alt="看图题图片" src="'+q.img+'">':'')+'<div id="qbox" class="hiddenq">点下方听题</div><div class="row"><button class="primary grow" id="play">▶ 听题</button><button id="show">看文字</button></div>'+timerHTML(sec)+'<div class="row"><button class="grow" id="go">答完，下一步</button></div></section>';
  const show=()=>{$('#qbox').className='q';$('#qbox').textContent=fq};
  $('#play').onclick=()=>{speak(fq,show);startTimer(sec)};$('#show').onclick=show;
@@ -313,12 +323,66 @@ function mockEnd(list){
 }
 R.hot=function(){
  const L=QS.filter(q=>hfN(q)>0).sort((a,b)=>hfN(b)-hfN(a)),a=L.filter(q=>hfN(q)>=8),b=L.filter(q=>hfN(q)>=4&&hfN(q)<8);
- const sec=(title,arr)=>arr.length?'<section style="display:grid;gap:8px"><h3 style="font-size:20px">'+title+' · '+arr.length+' 题</h3>'+arr.map(q=>{const c=card(q.id);return '<button class="qrow" data-q="'+q.id+'"><span><small>'+esc(q.topic.title)+' · '+esc(PACK.engines[q.engine].name)+' '+hfTag(q)+'</small>'+esc(q.q)+'</span>'+(c.b<0?'<span class="dot">新题</span>':isDue(q.id)?'<span class="dot due">到期</span>':'<span class="dot good">已练</span>')+'</button>'}).join('')+'</section>':'';
- $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">HIGH FREQUENCY</div><h1 style="font-size:32px">高频题单独练</h1><p class="muted">按在 '+SES.length+' 场回忆里出现的场数排序。★★★ 为 8 场以上，★★ 为 4–7 场，★ 为 1–3 场。</p></header><div class="row"><button class="primary grow" id="h1">练 ★★★（'+a.length+' 题）</button><button class="grow" id="h2">练 ★★（'+b.length+' 题）</button><button class="grow" id="h3">练 ★（'+L.filter(q=>hfN(q)<4).length+' 题）</button></div>'+sec('★★★',a)+sec('★★',b)+sec('★',L.filter(q=>hfN(q)<4))+'<p class="small muted">场数由关键词匹配得出，只作排序参考。</p>';
+ const sec=(title,arr)=>arr.length?'<section style="display:grid;gap:8px"><h3 style="font-size:20px">'+title+' · '+arr.length+' 题</h3>'+arr.map(q=>{const c=card(q.id);return '<button class="qrow" data-q="'+q.id+'"><span><small>'+esc(q.topic.title)+' · '+esc(PACK.engines[q.engine].name)+' '+hfTag(q)+'</small>'+esc(q.q)+(q.qz?'<small style="display:block">'+esc(q.qz)+'</small>':'')+realOf(q).slice(0,3).map(v=>'<small style="display:block;margin-top:4px;color:var(--ink)">· '+esc(v.t)+' <span class="muted">('+v.s.length+' 场)</span></small>').join('')+(linkedOf(q).length?'<small style="display:block;margin-top:4px">常连问：'+linkedOf(q).slice(0,3).map(o=>esc(o.qz||o.q)).join('；')+'</small>':'')+(()=>{const r=srcOf(q);return r.length?'<small style="display:block;margin-top:4px">来源：'+r.slice(0,3).map(x=>esc(x.n.replace(/^2026\./,''))).join('、')+(r.length>3?' 等 '+r.length+' 场':'')+(q.p?' · 书 p.'+q.p:'')+'</small>':''})()+'<small style="display:block">同类问法：真题 '+realOf(q).length+' 种 · 书上 '+(q.book||[]).length+' 种</small></span>'+(c.b<0?'<span class="dot">新题</span>':isDue(q.id)?'<span class="dot due">到期</span>':'<span class="dot good">已练</span>')+'</button>'}).join('')+'</section>':'';
+ $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">HIGH FREQUENCY</div><h1 style="font-size:32px">高频题单独练</h1><p class="muted">按在 '+SES.length+' 场回忆里出现的场数排序。★★★ 为 8 场以上，★★ 为 4–7 场，★ 为 1–3 场。</p></header><div class="row"><button class="primary grow" id="h1">练 ★★★（'+a.length+' 题）</button><button class="grow" id="h2">练 ★★（'+b.length+' 题）</button><button class="grow" id="h3">练 ★（'+L.filter(q=>hfN(q)<4).length+' 题）</button></div>'+sec('★★★',a)+sec('★★',b)+sec('★',L.filter(q=>hfN(q)<4))+'<p class="small muted">场数由关键词匹配得出，只作排序参考。每题练习时可以展开“同类问法”，把真题原问法和书上同类题一起过一遍，都用同一套答法。</p>';
  $('#h1').onclick=()=>train(a,0);$('#h2').onclick=()=>train(b,0);$('#h3').onclick=()=>train(L.filter(q=>hfN(q)<4),0);
  document.querySelectorAll('[data-q]').forEach(x=>x.onclick=()=>train([byId(x.dataset.q)],0));
 };
+const HFR=QS.filter(q=>q.hf).map(q=>[q,new RegExp(q.hf,'i')]);
+function partsOf(t){return t.split(/(?<=\?)\s+/).map(x=>x.trim()).filter(x=>x.length>3)}
+function ownerOf(part,self){const m=HFR.filter(([q,r])=>r.test(part)).map(x=>x[0]);if(!m.length)return null;if(self&&m.includes(self))return self;return m.sort((a,b)=>hfN(b)-hfN(a))[0]}
+function realOf(q){if(!q.hf)return [];const r=new RegExp(q.hf,'i'),M=new Map();SES.forEach(x=>x.q.forEach(t=>{if(t.startsWith('(Picture'))return;if(r.test(t)){const k=t.toLowerCase().replace(/[^a-z]/g,'');const o=M.get(k)||{t:t,s:[]};o.s.push(x.n);M.set(k,o)}}));return [...M.values()].sort((a,b)=>b.s.length-a.s.length||partsOf(b.t).length-partsOf(a.t).length)}
+function linkedOf(q){const L=new Map();realOf(q).forEach(v=>partsOf(v.t).forEach(pt=>{const o=ownerOf(pt,q);if(o&&o!==q)L.set(o.id,o)}));return [...L.values()]}
+const dk=n=>{const m=n.match(/(\d+)\.(\d+)\.(\d+)/);return m?+m[1]*10000+ +m[2]*100+ +m[3]:0};
+function srcOf(q){if(!q.hf)return [];const r=new RegExp(q.hf,'i');return SES.map(x=>({n:x.n,q:x.q.filter(t=>r.test(t))})).filter(x=>x.q.length).sort((a,b)=>dk(b.n)-dk(a.n))}
+function fpri(q,f){const o=(q.fsrc||{})[f];return !o?0:o.s.length?1000+o.s.length:o.p?500:o.np?100:0}
+function pickF(q){const L=q.follow||[],E=L.filter(f=>fpri(q,f.q)>=1000);if(RM()&&!E.length)return null;const P=RM()?E:(E.length&&Math.random()<.7?E:L);return P[Math.floor(Math.random()*P.length)]}
+function fsrcHTML(q,f){const o=(q.fsrc||{})[f];if(!o)return '';const a=[];if(o.s.length)a.push('考试回忆 '+o.s.length+' 场（最近 '+esc(o.s[0])+'）');if(o.p)a.push('400 页书 p.'+o.p);return '<div class="muted mono" style="font-size:12px">来源：'+(a.length?a.join(' · '):'整理补充的追问（不是真题原句），'+(o.np?'书上相近题在 p.'+o.np:'内容依据本题书 p.'+(q.p||'—')))+'</div>'}
+function srcHTML(q){const a=srcOf(q),pg=q.p;if(!a.length&&!pg)return '';return '<details class="vars" style="margin:6px 0"><summary>题目来源：考试回忆 '+a.length+' 场'+(pg?' · 400 页书 p.'+pg:'')+(a[0]?' · 最近一次 '+esc(a[0].n):'')+'</summary>'+(a.length?'<ol class="small" style="margin:8px 0 0;padding-left:20px;display:grid;gap:6px">'+a.map(x=>'<li><b>'+esc(x.n)+'</b>'+x.q.map(t=>'<div class="muted">'+esc(t)+'</div>').join('')+'</li>').join('')+'</ol>':'')+(pg?'<p class="small muted" style="margin:8px 0 0">书上原题在 400 页题库第 '+pg+' 页</p>':'')+'</details>'}
+function variantsHTML(q,open){const a=realOf(q),b=RM()?[]:q.book||[],ln=linkedOf(q).filter(o=>!RM()||hfN(o)>0);if(!a.length&&!b.length&&!(q.rel||[]).length)return '';
+ return (ln.length?'<div class="sheet" style="border-color:var(--accent);display:grid;gap:6px;margin:10px 0"><b class="small">连问提醒：考官常把这题和下面的题连着问</b>'+ln.map(o=>'<button class="small" data-lq="'+o.id+'" style="text-align:left">'+esc(o.q)+(o.qz?'<br><span class="muted">'+esc(o.qz)+'</span>':'')+' '+hfTag(o)+'</button>').join('')+'</div>':'')+
+ '<details class="vars"'+(open?' open':'')+'><summary>同类问法：真题 '+a.length+' 种 · 书上 '+b.length+' 种'+((q.rel||[]).length?' · 相关 '+q.rel.length+' 题':'')+'</summary>'+(a.length?'<p class="small muted" style="margin:8px 0 4px">考试回忆里的原问法（连问的每一问都标出用哪道题答）</p><ol class="small" style="margin:0;padding-left:20px;display:grid;gap:8px">'+a.map(v=>{const ps=partsOf(v.t);return '<li>'+(ps.length>1?ps.map((pt,k)=>{const o=ownerOf(pt,q);return '<div>'+'①②③④'[k]+' '+esc(pt)+(o?' <span class="muted">→ '+(o===q?'本题':esc(o.q))+'</span>':'')+'</div>'}).join(''):esc(v.t))+'<div class="muted mono" style="font-size:12px">'+v.s.length+' 场：'+esc(v.s.slice(0,4).join('、'))+(v.s.length>4?' 等':'')+'</div></li>'}).join('')+'</ol>':'')+(b.length?'<p class="small muted" style="margin:10px 0 4px">400 页书上的同类题（同一套答法可用）</p><ul class="small" style="margin:0;padding-left:18px">'+b.map(x=>'<li>'+esc(x[1])+' <span class="muted mono">p.'+x[0]+'</span></li>').join('')+'</ul>':'')+((q.rel||[]).length&&!RM()?'<p class="small muted" style="margin:10px 0 4px">书上同一节的相关题（考官可能顺着追问）</p><ul class="small" style="margin:0;padding-left:18px">'+q.rel.map(x=>{const o=ownerOf(x[1],null);return '<li>'+esc(x[1])+' <span class="muted mono">p.'+x[0]+'</span>'+(o&&o!==q?'<br><button class="small" data-lq="'+o.id+'" style="margin-top:4px;text-align:left">答法见：'+esc(o.qz||o.q)+'</button>':'')+'</li>'}).join('')+'</ul>':'')+'</details>'}
+function bindLinked(list,i){document.querySelectorAll('[data-lq]').forEach(x=>x.onclick=()=>{const o=byId(x.dataset.lq);if(list&&!list.slice(i+1,i+2).includes(o)){list.splice(i+1,0,o)}x.disabled=true;x.insertAdjacentHTML('beforeend','<br><b class="small">已排在下一题，学完这题接着练</b>')})}
+R.ans=function(){const all=QS.filter(q=>hfN(q)>=1).sort((a,b)=>hfN(b)-hfN(a));S.ansF=S.ansF||'3';
+ const SAY=[];const sb=t=>{SAY.push(t);return '<button class="small" data-say="'+(SAY.length-1)+'" aria-label="朗读" style="min-width:44px;padding:4px 10px;margin-right:6px">▶</button>'};
+ const qa=(en,zh,a,az,src)=>'<div style="display:grid;gap:4px;padding:10px 0;border-top:1px solid var(--rule)"><div>'+sb(en)+'<b>'+esc(en)+'</b></div>'+(src||'')+(zh?'<div class="zh">'+esc(zh)+'</div>':'')+(a&&!/^提示：|^用同类/.test(a)?'<div style="margin-top:4px">'+sb(a)+esc(a)+'</div>':a?'<div style="margin-top:4px">'+esc(a)+'</div>':'')+(az?'<div class="zh">'+esc(az)+'</div>':'')+'</div>';
+ const card=(q,k)=>{const fo=(q.follow||[]).map(f=>[f.q,f.qz||(PACK.qmap||{})[f.q]||'',(q.fa||{})[f.q]]),ch=(q.chain||[]).filter(c=>!fo.some(x=>x[0]===c)).map(c=>[c,(PACK.qmap||{})[c]||'',(q.fa||{})[c]]);const W=t=>new Set(t.toLowerCase().replace(/[^a-z ]/g,'').split(' ').filter(w=>w.length>2&&!['you','your','the','what','how','does','did','have','that','this','would','will'].includes(w))),F=[];fo.concat(ch).filter(x=>!RM()||fpri(q,x[0])>=1000).sort((a,b)=>fpri(q,b[0])-fpri(q,a[0])).map(x=>x[2]?x:[x[0],x[1],null,(q.follow||[]).find(f=>f.q===x[0])]).forEach(x=>{const w=W(x[0]);if(F.some(y=>{const v=W(y[0]);let c=0;w.forEach(z=>{if(v.has(z))c++});return c>=Math.max(1,Math.min(w.size,v.size)*.7)||(y[2]&&x[2]&&y[2][0].slice(0,30)===x[2][0].slice(0,30))}))return;F.push(x)});
+  const rel=new Map(),noans=[];linkedOf(q).forEach(o=>rel.set(o.id,o));(q.rel||[]).forEach(x=>{const o=ownerOf(x[1],null);if(o&&o!==q){if(!rel.has(o.id))rel.set(o.id,o)}else if(o!==q)noans.push(x)});(q.book||[]).forEach(x=>noans.push(x));const relS=[...rel.values()].filter(o=>!RM()||hfN(o)>0).sort((a,b)=>hfN(b)-hfN(a));
+  return '<section class="sheet" style="display:grid;gap:8px"><div class="small muted mono">'+k+' · '+esc(q.topic.title)+'</div><div>'+hfTag(q)+'</div><h2 style="font-size:20px;line-height:1.35">'+sb(q.q)+esc(q.q)+'</h2>'+(q.qz?'<p class="zh">'+esc(q.qz)+'</p>':'')+srcHTML(q)+
+  memBox(q,sb)+(q.mem?'<h3 style="font-size:16px;margin-top:6px">答案（按骨架）</h3><p>'+sb(q.mem[2])+esc(q.mem[2])+'</p><p class="zh">'+esc(q.mem[3])+'</p><h3 style="font-size:16px;margin-top:6px">展开版（细节更多）</h3><p>'+sb(q.model)+esc(q.model)+'</p><p class="zh">'+esc(q.zh)+'</p>':'<h3 style="font-size:16px;margin-top:6px">参考答案</h3><p>'+sb(q.model)+esc(q.model)+'</p><p class="zh">'+esc(q.zh)+'</p>')+
+  (F.length?'<h3 style="font-size:16px;margin-top:10px">追问和答案</h3>'+F.map(x=>x[2]?qa(x[0],x[1],x[2][0],x[2][1],fsrcHTML(q,x[0])):qa(x[0],x[1],x[3]?'提示：'+x[3].hint:'用同类句式回答',x[3]&&x[3].hz?'提示：'+x[3].hz:'',fsrcHTML(q,x[0]))).join(''):'')+
+  (rel.size?'<h3 style="font-size:16px;margin-top:10px">常连问和书上相关题</h3>'+relS.slice(0,6).map(o=>qa(o.q,o.qz,o.model,o.zh,'<div class="muted mono" style="font-size:12px">来源：'+(hfN(o)?'考试回忆 '+hfN(o)+' 场':'')+(hfN(o)&&o.p?' · ':'')+(o.p?'400 页书 p.'+o.p:'')+'</div>')).join(''):'')+(noans.length&&!RM()?'<h3 style="font-size:16px;margin-top:10px">书上其他相关题和答案</h3>'+noans.filter((x,i,A)=>A.findIndex(y=>y[0]===x[0]&&y[1]===x[1])===i).map(x=>{const b=(PACK.bans||{})[x[0]+'|'+x[1]];return b?qa(x[1],'',b[0],b[1],'<div class="muted mono" style="font-size:12px">来源：400 页书 p.'+x[0]+'</div>'):qa(x[1],'','用本题的句式和内容回答','','<div class="muted mono" style="font-size:12px">来源：400 页书 p.'+x[0]+'</div>')}).join(''):'')+'</section>'};
+ const L=all.filter(q=>S.ansF==='3'?hfN(q)>=8:S.ansF==='2'?hfN(q)>=4&&hfN(q)<8:hfN(q)<4);
+ $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">ANSWER BOOK</div><h1 style="font-size:32px">高频答案本</h1><p class="muted">按场数排好。'+(RM()?'只看回忆题模式：只显示考试回忆里出现过的题、追问和连问，书上的题已隐藏。':'★★★ 和 ★★ 题先背蓝框里的一行关键词，再说速记答案，完整答案收在下面。之后是追问和答案、常连问、书上其他相关题。')+'★ 题的部分追问只有提示。直接从上往下读、往下说。</p></header><div class="chips"><button data-af="3" aria-pressed="'+(S.ansF==='3')+'">★★★ '+all.filter(q=>hfN(q)>=8).length+' 题</button><button data-af="2" aria-pressed="'+(S.ansF==='2')+'">★★ '+all.filter(q=>hfN(q)>=4&&hfN(q)<8).length+' 题</button><button data-af="1" aria-pressed="'+(S.ansF==='1')+'">★ '+all.filter(q=>hfN(q)<4).length+' 题</button></div>'+(S.ansF!=='1'?tplBox():'')+L.map((q,i)=>card(q,i+1)).join('');
+ document.querySelectorAll('[data-af]').forEach(b=>b.onclick=()=>{S.ansF=b.dataset.af;save();R.ans();window.scrollTo(0,0)});document.querySelectorAll('[data-say]').forEach(b=>b.onclick=()=>speak(SAY[+b.dataset.say],()=>{b.textContent='×'}))};
+(function(){const b=document.createElement('button');b.id='selsay';b.type='button';b.textContent='▶ 读选中';b.style.cssText='position:fixed;right:16px;bottom:calc(16px + env(safe-area-inset-bottom));z-index:9998;display:none;padding:12px 16px;border-radius:24px;border:0;background:#0B6E8A;color:#fff;font:600 16px system-ui,sans-serif;box-shadow:0 4px 14px rgba(0,0,0,.3)';document.body.appendChild(b);
+ let cur='';const sel=()=>{let t='';try{t=String(window.getSelection()||'').trim()}catch(e){}return t};
+ document.addEventListener('selectionchange',()=>{const t=sel();if(t&&/[A-Za-z]/.test(t)&&t.length<=600){cur=t.replace(/[一-鿿，。；：！？（）、“”]+/g,' ');b.style.display='block'}else{setTimeout(()=>{if(!sel())b.style.display='none'},300)}});
+ let last='',tm=0;const clean=t=>t.replace(/[一-鿿，。；：！？（）、“”]+/g,' ').replace(/^[^A-Za-z0-9]+|[^A-Za-z0-9]+$/g,'').trim();
+ const auto=t=>{if(((typeof S!=='undefined'&&S.set)||{}).selAuto===false)return;const w=clean(t||'');if(!w||!/[A-Za-z]/.test(w)||w.split(/\s+/).length>4){if(!w)last='';return}if(w===last)return;last=w;speak(w)};
+ document.addEventListener('selectionchange',()=>{clearTimeout(tm);const t=sel();if(!t){last='';return}tm=setTimeout(()=>auto(sel()),550)});
+ ['touchend','mouseup'].forEach(ev=>document.addEventListener(ev,e=>{if(e.target.closest&&e.target.closest('#selsay,[data-say],[data-sayt],button'))return;const t=sel();if(t){clearTimeout(tm);auto(t)}},true));
+ const go=e=>{e.preventDefault();e.stopPropagation();if(cur){last=clean(cur);speak(cur,()=>{b.textContent='这台设备无法朗读'})}};b.addEventListener('pointerdown',go);b.addEventListener('click',e=>e.preventDefault())})();
+document.addEventListener('click',e=>{const b=e.target.closest&&e.target.closest('[data-sayt]');if(b){e.preventDefault();e.stopPropagation();speak(b.dataset.sayt)}},true);
 const PICS=PACK.pics||[];
+const TPLM={};(PACK.tpl||[]).forEach(t=>TPLM[t[0]]=t);
+const memK=q=>q.mem?[q.mem[0],q.mem[1]]:q.memK||null;
+const memBox=(q,sb)=>{const k=memK(q);if(!k)return '';return '<div style="display:grid;gap:6px;padding:12px;border:2px solid #0B6E8A;border-radius:10px"><div class="eyebrow" style="color:#0B6E8A">速记 · 先背这一行</div>'+tplTag(q)+'<div style="font-size:18px;font-weight:700;line-height:1.4">'+(sb?sb(k[0]):'')+esc(k[0])+'</div><div class="zh" style="font-weight:600">'+esc(k[1])+'</div></div>'};
+const tplTag=q=>{const t=TPLM[q.memT];return t?'<div class="small mono" style="color:#0B6E8A">骨架：'+t[1]+' · '+t[3]+'</div>':''};
+const tplBox=()=>'<details class="sheet" style="display:block"><summary><b>先背 9 个万能骨架</b>（每个只背一次，所有回忆题都套这几个）</summary><div style="display:grid;gap:10px;margin-top:10px">'+(PACK.tpl||[]).map(t=>'<div style="border-top:1px solid var(--rule);padding-top:8px"><b>'+t[1]+'</b> <span class="muted small">'+t[2]+' → '+t[3]+'</span><p style="margin:4px 0 0"><button class="small" data-sayt="'+esc(t[4].replace(/…/g,''))+'" style="min-width:44px;padding:4px 10px;margin-right:6px">▶</button>'+esc(t[4])+'</p></div>').join('')+'</div></details>';
+R.memo=function(){S.memo=S.memo||{};const all=QL().filter(q=>memK(q)).sort((a,b)=>hfN(b)-hfN(a));S.memoF=S.memoF||'3';
+ const L=all.filter(q=>S.memoF==='3'?hfN(q)>=8:S.memoF==='2'?hfN(q)>=4&&hfN(q)<8:S.memoF==='1'?hfN(q)<4:true).sort((a,b)=>(S.memo[a.id]||0)-(S.memo[b.id]||0)||hfN(b)-hfN(a));
+ const ok=all.filter(q=>(S.memo[q.id]||0)>=2).length;
+ $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">MEMORY CARDS</div><h1 style="font-size:32px">速记卡</h1><p class="muted">三步：听题 → 先说出关键词 → 看答案对照，再完整说一遍。所有回忆题都标了骨架和关键词，同类题说法一样，背一个骨架就能答一类题。点两次“记住了”算掌握，没记住的会排到前面。</p></header>'+tplBox()+'<div class="chips"><button data-mf="3" aria-pressed="'+(S.memoF==='3')+'">★★★ '+all.filter(q=>hfN(q)>=8).length+' 题</button><button data-mf="2" aria-pressed="'+(S.memoF==='2')+'">★★ '+all.filter(q=>hfN(q)>=4&&hfN(q)<8).length+' 题</button><button data-mf="1" aria-pressed="'+(S.memoF==='1')+'">★ '+all.filter(q=>hfN(q)<4).length+' 题</button><button data-mf="a" aria-pressed="'+(S.memoF==='a')+'">全部 '+all.length+' 题</button></div><p class="small muted">已掌握 '+ok+' / '+all.length+'</p><div id="mc"></div>';
+ document.querySelectorAll('[data-mf]').forEach(b=>b.onclick=()=>{S.memoF=b.dataset.mf;save();R.memo()});
+ let i=0;const show=()=>{if(!L.length){$('#mc').innerHTML='<p class="muted">这一组没有题。</p>';return}const q=L[i%L.length],c=S.memo[q.id]||0;
+  $('#mc').innerHTML='<section class="sheet" style="display:grid;gap:10px"><div class="small muted mono">'+(i%L.length+1)+' / '+L.length+' · '+esc(q.topic.title)+' · 记住 '+c+' 次</div><div>'+hfTag(q)+'</div><h2 style="font-size:20px;line-height:1.35"><button class="small" data-sayt="'+esc(q.q)+'" style="min-width:44px;padding:4px 10px;margin-right:6px">▶</button>'+esc(q.q)+'</h2>'+(q.qz?'<p class="zh">'+esc(q.qz)+'</p>':'')+
+  tplTag(q)+'<div id="k1" hidden style="gap:6px;padding:12px;border:2px solid #0B6E8A;border-radius:10px"><div style="font-size:18px;font-weight:700;line-height:1.4"><button class="small" data-sayt="'+esc(memK(q)[0])+'" style="min-width:44px;padding:4px 10px;margin-right:6px">▶</button>'+esc(memK(q)[0])+'</div><div class="zh" style="font-weight:600">'+esc(memK(q)[1])+'</div></div>'+
+  '<div id="k2" hidden><p><button class="small" data-sayt="'+esc(q.mem?q.mem[2]:q.model)+'" style="min-width:44px;padding:4px 10px;margin-right:6px">▶</button>'+esc(q.mem?q.mem[2]:q.model)+'</p><p class="zh">'+esc(q.mem?q.mem[3]:q.zh)+'</p></div>'+
+  '<div class="row"><button class="primary grow" id="b1">1. 先自己想三点，再看关键词</button></div></section>';
+  const b1=$('#b1');let st=0;b1.onclick=()=>{if(st===0){$('#k1').hidden=false;$('#k1').style.display='grid';b1.textContent='2. 用关键词说一遍，再看答案';st=1}else if(st===1){$('#k2').hidden=false;b1.parentNode.innerHTML='<button class="primary grow" id="ok">记住了</button><button class="grow" id="ag">没记住，再来</button>';$('#ok').onclick=()=>{S.memo[q.id]=c+1;save();i++;show();window.scrollTo(0,0)};$('#ag').onclick=()=>{S.memo[q.id]=0;save();i++;show();window.scrollTo(0,0)}}};
+  if(((S.set||{}).autoq)!==false)speak(q.q)};
+ show()};
 R.pic=function(){
  $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">PICTURE QUESTIONS</div><h1 style="font-size:32px">看图题四步法</h1><p class="muted">考试的图可能换，答题结构不变。先说看到什么，再说原因、处置、预防，约 60–90 秒。</p></header>'+
  '<div class="s131" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div><b>1</b><span>看到<br>In this picture, I can see…</span></div><div><b>2</b><span>原因<br>It may be caused by…</span></div><div><b>3</b><span>处置<br>If I were the captain, I would…</span></div><div><b>4</b><span>预防<br>To avoid this, we should…</span></div></div>'+
@@ -340,11 +404,11 @@ function picRun(list,i){
   window.scrollTo(0,0)};
 }
 R.cold=function(){
- const B=PACK.book||[],chs=[...new Set(B.map(x=>x[1]))];
- $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">COLD QUESTIONS</div><h1 style="font-size:32px">陌生题开口</h1><p class="muted">从书上题目随机抽。不看答案，先判题型，30 秒内开口。</p></header><div class="chips" id="cc">'+['全部'].concat(chs).map((c,i)=>'<button data-c2="'+esc(c)+'" aria-pressed="'+(i===0)+'">'+esc(c)+'</button>').join('')+'</div><div class="row"><button class="primary grow" id="cs">随机一题</button></div><div id="cb"></div><p class="small muted">共 '+B.length+' 道，从扫描件识别后整理，个别字词可能和原书略有出入；这里只有题目和书页，答案请翻书或在模块里找。</p>';
+ const B=RM()?(()=>{const m=new Map();SES.forEach(x=>x.q.forEach(t=>{if(/^\(Picture/.test(t))return;if(!m.has(t))m.set(t,[0,'考试回忆',t,new Set()]);m.get(t)[3].add(x.n)}));return [...m.values()]})():PACK.book||[],chs=RM()?[]:[...new Set(B.map(x=>x[1]))];
+ $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">COLD QUESTIONS</div><h1 style="font-size:32px">陌生题开口</h1><p class="muted">'+(RM()?'从考试回忆原题随机抽（只看回忆题模式）。':'从书上题目随机抽。')+'不看答案，先判题型，30 秒内开口。</p></header><div class="chips" id="cc">'+['全部'].concat(chs).map((c,i)=>'<button data-c2="'+esc(c)+'" aria-pressed="'+(i===0)+'">'+esc(c)+'</button>').join('')+'</div><div class="row"><button class="primary grow" id="cs">随机一题</button></div><div id="cb"></div><p class="small muted">共 '+B.length+' 道，'+(RM()?'都是考试回忆里的原题。':'从扫描件识别后整理，个别字词可能和原书略有出入；这里只有题目和书页，答案请翻书或在模块里找。')+'</p>';
  let cur='全部';document.querySelectorAll('[data-c2]').forEach(b=>b.onclick=()=>{cur=b.dataset.c2;document.querySelectorAll('[data-c2]').forEach(x=>x.setAttribute('aria-pressed',x===b))});
  $('#cs').onclick=()=>{const L=B.filter(x=>cur==='全部'||x[1]===cur),x=L[Math.floor(Math.random()*L.length)];
-  $('#cb').innerHTML='<section class="sheet"><div class="small muted mono">书 p.'+x[0]+' · '+esc(x[1])+'</div><div id="qbox" class="q"'+(S.coldHide?' hidden':'')+'>'+esc(x[2])+'</div><div class="row"><button id="pl">▶ 听题</button><button id="tx">'+(S.coldHide?'看文字':'隐藏文字')+'</button></div>'+timerHTML(30)+'<div class="chips">'+Object.values(PACK.engines).map(e=>'<span class="small mono muted">'+esc(e.name)+'：'+esc(e.one)+'</span>').join(' · ')+'</div></section>';
+  $('#cb').innerHTML='<section class="sheet"><div class="small muted mono">'+(x[0]?'书 p.'+x[0]+' · '+esc(x[1]):'考试回忆原题')+'</div>'+(()=>{const o=ownerOf(x[2],null),e=x[3]?x[3].size:0,f=o?hfN(o):0,c=Math.max(e,f);if(!c)return '';return '<div><span class="hot '+(c>=8?'h3':c>=4?'h2':'h1')+'">'+(e?'原句考过 '+e+' 场':'')+(e&&f>e?' · ':'')+(f>e?'同类题考过 '+f+' 场':'')+'</span></div>'})()+'<div id="qbox" class="q"'+(S.coldHide?' hidden':'')+'>'+esc(x[2])+'</div><div class="row"><button id="pl">▶ 听题</button><button id="tx">'+(S.coldHide?'看文字':'隐藏文字')+'</button></div>'+timerHTML(30)+'<div class="chips">'+Object.values(PACK.engines).map(e=>'<span class="small mono muted">'+esc(e.name)+'：'+esc(e.one)+'</span>').join(' · ')+'</div></section>';
   $('#cb').insertAdjacentHTML('beforeend',recHTML()+checkHTML());recBind();checkBind('book-'+x[0],x[2]);$('#pl').onclick=()=>speak(x[2]);$('#tx').onclick=()=>{S.coldHide=!S.coldHide;save();$('#qbox').hidden=!!S.coldHide;$('#tx').textContent=S.coldHide?'看文字':'隐藏文字'};speak(x[2],()=>{$('#qbox').hidden=false;$('#tx').textContent='隐藏文字'});startTimer(30)};
 };
 /* recorder and self-check */
@@ -367,28 +431,32 @@ function checkBind(qid,qtext){const sc={};document.querySelectorAll('[data-sc]')
 function summaryText(){const L=S.checks||[];if(!L.length)return '';const r=L.slice(-10),av=SIX.map(([k,l])=>[l,r.reduce((a,x)=>a+x.s[k],0)/r.length]);av.sort((a,b)=>a[1]-b[1]);return ' 最近 '+r.length+' 次平均：'+av.map(x=>x[0]+' '+x[1].toFixed(1)).join('，')+'。最弱：'+av[0][0]+'。总评看最低一项。'}
 const GEN={LIST:["Which of those is the most important, and why?","Can you give me a real example?","What if that doesn't work?"],RISK:["Which risk worries you most?","How do you reduce it?","Has it happened to you?"],ACT:["Why do that first?","What if the situation gets worse?","What would you tell the passengers?"],DEF:["Why does a pilot need to know this?","Can you give me an example?","What happens if it isn't available?"],PROC:["Which step is easiest to get wrong?","What if you don't have enough time?","How does the other pilot help?"],OPN:["Why do you think so?","Some people disagree. What would you say to them?","Has your view changed with experience?"],CMP:["Which one do you prefer, and why?","When would you choose the other?","Can you give me an example?"],STORY:["What would you do differently?","What did your crew think?","What did you learn from it?"]};
 const pick=a=>a[Math.floor(Math.random()*a.length)];
-const chainOf=q=>{if(q.chain)return q.chain;const f=(q.follow||[]).map(x=>x.q),g=GEN[q.engine]||GEN.LIST;return f.concat(g).slice(0,3)};
-R.chain=function(){S.chain=S.chain||{};const POOL=QS.filter(q=>hfN(q)>=5||q.chain).sort((a,b)=>(S.chain[a.id]||0)-(S.chain[b.id]||0)||hfN(b)-hfN(a));
+const chainOf=q=>{const a=(q.follow||[]).map(x=>x.q),c=q.chain||[],seen=new Set(),M=[];a.concat(c).forEach(t=>{const k=t.toLowerCase().replace(/[^a-z]/g,'');if(!seen.has(k)){seen.add(k);M.push(t)}});M.sort((x,y)=>fpri(q,y)-fpri(q,x)||(c.includes(y)-c.includes(x)));const ex=M.filter(t=>fpri(q,t)>=1000);const base=c.length?ex.concat(c.filter(t=>!ex.includes(t))):M;if(RM())return ex.slice(0,3);const g=GEN[q.engine]||GEN.LIST;return base.concat(g).slice(0,3)};
+R.chain=function(){S.chain=S.chain||{};const xf=q=>Object.values(q.fsrc||{}).filter(o=>o.s.length).length;const POOL=(RM()?QS.filter(q=>hfN(q)>0&&chainOf(q).length):QS.filter(q=>hfN(q)>=5||q.chain)).sort((a,b)=>(S.chain[a.id]||0)-(S.chain[b.id]||0)||hfN(b)-hfN(a)||xf(b)-xf(a));
  const done=POOL.filter(q=>S.chain[q.id]).length;
  $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">FOLLOW-UP DRILL</div><h1 style="font-size:32px">追问训练</h1><p class="muted">考官连问 4 层，不给现成答案。每层说满时间，不要背模板：用指定的开头，完成句型任务。听不清就说 “Could you say that again, please?”</p></header><div class="row"><button class="primary grow" id="st">开始下一题</button></div><p class="small muted">高频题 '+POOL.length+' 道，已练 '+done+' 道。'+esc(summaryText())+'</p><div id="ch"></div>';
  $('#st').onclick=()=>chainRun(POOL[0],0)};
 function chainRun(q,i){const L=[q.q].concat(chainOf(q)),n=L.length;
- if(i>=n){S.chain[q.id]=(S.chain[q.id]||0)+1;save();$('#app').innerHTML='<section class="sheet" style="display:grid;gap:8px"><h2 style="font-size:22px">这题说完了</h2><p class="small muted">对照参考（只用来补内容，不用背）</p><p>'+esc(q.model)+'</p><p class="zh">'+esc(q.zh)+'</p></section>'+checkHTML()+'<div class="row"><button class="primary grow" id="nx">下一题</button></div>';checkBind(q.id,q.q);$('#nx').onclick=()=>R.chain();window.scrollTo(0,0);return}
+ if(i>=n){S.chain[q.id]=(S.chain[q.id]||0)+1;save();$('#app').innerHTML='<section class="sheet" style="display:grid;gap:8px"><h2 style="font-size:22px">这题说完了</h2><p class="small muted">对照参考（只用来补内容，不用背）</p><p><button class="small" data-sayt="'+esc(q.model)+'" style="min-width:44px;padding:4px 10px;margin-right:6px">▶</button>'+esc(q.model)+'</p><p class="zh">'+esc(q.zh)+'</p></section>'+checkHTML()+'<div class="row"><button class="primary grow" id="nx">下一题</button></div>';checkBind(q.id,q.q);$('#nx').onclick=()=>R.chain();window.scrollTo(0,0);return}
  const sec=i===0?60:40,op=pick((PACK.openers||{})[q.engine]||['Well…']),tk=pick(PACK.tasks||['']);
- $('#app').innerHTML='<section class="sheet" style="display:grid;gap:12px"><div class="small muted mono">第 '+(i+1)+' / '+n+' 层 · '+(i===0?'主问题':'追问')+'</div><div class="row"><button class="primary grow" id="pl">▶ 听考官提问</button><button class="grow" id="sh">看题目</button></div><div id="qbox" class="q" hidden>'+esc(L[i])+'</div><p id="qz" class="zh" hidden>'+esc((PACK.qmap||{})[L[i]]||'')+'</p><p class="small"><b>开头：</b>'+esc(op)+'<br><span class="muted">'+esc((PACK.openersZ||{})[op]||'')+'</span></p><p class="small"><b>句型任务：</b>'+esc(tk)+'</p>'+timerHTML(sec)+recHTML()+'<div class="row"><button class="grow" id="go">开始计时</button><button class="primary grow" id="nx">'+(i+1<n?'下一层追问':'说完了')+'</button></div></section>';
+ $('#app').innerHTML='<section class="sheet" style="display:grid;gap:12px"><div class="small muted mono">第 '+(i+1)+' / '+n+' 层 · '+(i===0?'主问题':'追问')+'</div>'+(i===0?'<div>'+hfTag(q)+'</div>':'')+'<div class="row"><button class="primary grow" id="pl">▶ 听考官提问</button><button class="grow" id="sh">看题目</button></div><div id="qbox" class="q" hidden>'+esc(L[i])+'</div><p id="qz" class="zh" hidden>'+esc((PACK.qmap||{})[L[i]]||'')+'</p><p class="small"><b>开头：</b>'+esc(op)+'<br><span class="muted">'+esc((PACK.openersZ||{})[op]||'')+'</span></p><p class="small"><b>句型任务：</b>'+esc(tk)+'</p>'+timerHTML(sec)+recHTML()+(i>0?fsrcHTML(q,L[i]):'')+(i>0&&(q.fa||{})[L[i]]?'<details class="vars"><summary>说完后看参考答案</summary><p class="small" style="margin-top:6px"><button class="small" data-sayt="'+esc(q.fa[L[i]][0])+'" style="min-width:44px;padding:4px 10px;margin-right:6px">▶</button>'+esc(q.fa[L[i]][0])+'</p><p class="zh">'+esc(q.fa[L[i]][1])+'</p></details>':i===0?'<details class="vars"><summary>说完后看参考答案</summary><p class="small" style="margin-top:6px"><button class="small" data-sayt="'+esc(q.model)+'" style="min-width:44px;padding:4px 10px;margin-right:6px">▶</button>'+esc(q.model)+'</p><p class="zh">'+esc(q.zh)+'</p></details>':'')+'<div class="row"><button class="grow" id="go">开始计时</button><button class="primary grow" id="nx">'+(i+1<n?'下一层追问':'说完了')+'</button></div></section>';
  const showQ=()=>{$('#qbox').hidden=false;$('#qz').hidden=false};$('#pl').onclick=()=>speak(L[i],showQ);$('#sh').onclick=showQ;$('#go').onclick=()=>startTimer(sec);$('#nx').onclick=()=>{stopTimer();chainRun(q,i+1)};recBind();speak(L[i],showQ);window.scrollTo(0,0)}
 R.cov=function(){const C=PACK.cov||[],gr=[...new Set(C.map(x=>x.c))];const T=C.reduce((a,x)=>a+x.t,0),H=C.reduce((a,x)=>a+x.h,0);
  $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">COVERAGE</div><h1 style="font-size:32px">书上章节覆盖表</h1><p class="muted">按 400 页目录列出。“对应”指这一章的题能靠关键词对应到模块，'+H+'/'+T+' 道。它不保证答案写全了书上的每个要点；未识别的题也不在统计里。</p></header>'+gr.map(g=>'<section style="display:grid;gap:4px"><h3 style="font-size:20px">'+esc(g)+'</h3>'+C.filter(x=>x.c===g).map(x=>'<div class="row small" style="justify-content:space-between;border-bottom:1px solid rgba(127,127,127,.25);padding:6px 0;flex-wrap:nowrap"><span>'+esc(x.n)+' <span class="muted mono">p.'+x.p+'</span></span><span class="mono" style="white-space:nowrap">'+(x.t?x.h+'/'+x.t:'—')+'</span></div>').join('')+'</section>').join('')};
 R.tts=function(){const draw=()=>{const vs=enVoices(),st=S.set,cur=st.voice?vs.find(v=>v.name===st.voice):bestVoice(vs),rate=st.rate||.92;
- $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">VOICE</div><h1 style="font-size:32px">朗读设置</h1><p class="muted">声音来自你这台设备自带的语音，每台设备可选的不一样。选好后，听题、追问和范文都会用它。</p></header><section class="sheet" style="display:grid;gap:12px"><h3 style="font-size:18px">语速</h3><div class="chips">'+[[.7,'慢'],[.8,'较慢'],[.92,'略慢（默认）'],[1,'正常'],[1.1,'较快']].map(([r,l])=>'<button data-r="'+r+'" aria-pressed="'+(rate===r)+'">'+l+'</button>').join('')+'</div><h3 style="font-size:18px">语音</h3>'+(vs.length?'<select id="vs" style="font:inherit;padding:10px;width:100%;background:var(--paper);color:var(--ink);border:1px solid var(--rule)">'+vs.map(v=>'<option value="'+esc(v.name)+'"'+(cur&&cur.name===v.name?' selected':'')+'>'+esc(v.name)+' · '+esc(v.lang)+'</option>').join('')+'</select>':'<p class="small muted">这台设备暂时没有列出英语语音。先点试听；如果没有声音，请在系统设置里下载英语语音，再回到这里。</p>')+'<div class="row"><button class="primary grow" id="tt">▶ 试听</button><button class="grow" id="rs">恢复默认</button></div><p class="small muted">考前建议多听正常语速，也试试英式等不同口音。真实考官的口音和设备朗读会有差别。</p></section>';
+ $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">VOICE</div><h1 style="font-size:32px">朗读设置</h1><p class="muted">声音来自你这台设备自带的语音，每台设备可选的不一样。选好后，听题、追问和范文都会用它。</p></header><section class="sheet" style="display:grid;gap:12px"><h3 style="font-size:18px">语速</h3><div class="chips">'+[[.7,'慢'],[.8,'较慢'],[.92,'略慢（默认）'],[1,'正常'],[1.1,'较快']].map(([r,l])=>'<button data-r="'+r+'" aria-pressed="'+(rate===r)+'">'+l+'</button>').join('')+'</div><h3 style="font-size:18px">语音</h3>'+(vs.length?'<select id="vs" style="font:inherit;padding:10px;width:100%;background:var(--paper);color:var(--ink);border:1px solid var(--rule)">'+vs.map(v=>'<option value="'+esc(v.name)+'"'+(cur&&cur.name===v.name?' selected':'')+'>'+esc(v.name)+' · '+esc(v.lang)+'</option>').join('')+'</select>':'<p class="small muted">这台设备暂时没有列出英语语音。先点试听；如果没有声音，请在系统设置里下载英语语音，再回到这里。</p>')+'<div class="row"><button class="primary grow" id="tt">▶ 试听</button><button class="grow" id="rs">恢复默认</button></div><h3 style="font-size:18px">选中单词自动发音</h3><p class="small muted">长按选中一个单词或 4 个词以内的短语，松手就读。选中整句时，点右下角“▶ 读选中”。</p><div class="chips"><button id="sa1" aria-pressed="'+(st.selAuto!==false)+'">开</button><button id="sa0" aria-pressed="'+(st.selAuto===false)+'">关</button></div><h3 style="font-size:18px">进度备份</h3><p class="small muted">离线版的进度只存在当前浏览器里。换设备或清理浏览器前，先导出备份；在新设备上导入即可继续。</p><div class="row"><button class="grow" id="ex">导出进度</button><button class="grow" id="im">导入进度</button><input type="file" id="imf" accept=".json,application/json" hidden></div><p id="bko" class="small muted"></p><p class="small muted">考前建议多听正常语速，也试试英式等不同口音。真实考官的口音和设备朗读会有差别。</p></section>';
  document.querySelectorAll('[data-r]').forEach(b=>b.onclick=()=>{st.rate=+b.dataset.r;save();draw()});
- const se=$('#vs');if(se)se.onchange=()=>{st.voice=se.value;save()};
+ const se=$('#vs');if(se)se.onchange=()=>{st.voice=se.value;save()};$('#sa1').onclick=()=>{st.selAuto=true;save();draw()};$('#sa0').onclick=()=>{st.selAuto=false;save();draw()};
  $('#tt').onclick=()=>speak('If you encounter wind shear on final approach, what will you do next?',()=>{$('#tt').textContent='这台设备无法朗读'});
- $('#rs').onclick=()=>{delete st.voice;delete st.rate;save();draw()}};
+ $('#rs').onclick=()=>{delete st.voice;delete st.rate;save();draw()};
+ $('#ex').onclick=()=>{try{const u=URL.createObjectURL(new Blob([JSON.stringify(S)],{type:'application/json'})),l=document.createElement('a');l.href=u;l.download='opi-进度-'+dstr(new Date())+'.json';document.body.appendChild(l);l.click();l.remove();setTimeout(()=>URL.revokeObjectURL(u),2000);$('#bko').textContent='已导出。'}catch(e){$('#bko').textContent='导出失败。'}};
+ if(window.claude){['#ex','#im'].forEach(k=>$(k).hidden=true);$('#bko').textContent='在线版的进度跟随 Claude 账号同步，不需要备份。导出和导入请在离线版里用。'}
+ $('#im').onclick=()=>$('#imf').click();
+ $('#imf').onchange=()=>{const f=$('#imf').files[0];if(!f)return;f.text().then(t=>{const x=JSON.parse(t);if(!x||typeof x!=='object'||!x.cards)throw 0;S=Object.assign(S,x);save();$('#bko').textContent='已导入，共 '+Object.keys(S.cards).length+' 道题的记录。'}).catch(()=>{$('#bko').textContent='这个文件不是 OPI 进度备份。'})}};
  draw();try{speechSynthesis.onvoiceschanged=()=>{if(view==='tts')draw()}}catch(e){}};
 /* bank */
 R.bank=function(){
- $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">QUESTION BANK</div><h1 style="font-size:32px">题库</h1></header>'+PACK.topics.map(t=>'<section style="display:grid;gap:8px"><h3 style="font-size:20px">'+esc(t.title)+'</h3><p class="small muted">'+esc(t.section)+' · 书 p.'+esc(t.pages)+' · '+t.qs.length+' 题。点题目可单独练。</p>'+t.qs.slice().sort((a,b)=>hfN(b)-hfN(a)).map(q=>{const c=card(q.id);const lab=c.b<0?'<span class="dot">新题</span>':isDue(q.id)?'<span class="dot due">到期</span>':'<span class="dot good">'+esc(c.due)+'</span>';return '<button class="qrow" data-q="'+q.id+'"><span><small>'+esc(PACK.engines[q.engine].name)+' · p.'+q.p+' '+hfTag(q)+'</small>'+esc(q.q)+'</span>'+lab+'</button>'}).join('')+'</section>').join('')+'<p class="small muted">目前收录按频率排在前面的话题，其余话题按“真题频率”的顺序陆续加入。</p>';
+ $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">QUESTION BANK</div><h1 style="font-size:32px">题库</h1></header>'+PACK.topics.map(t=>'<section style="display:grid;gap:8px"><h3 style="font-size:20px">'+esc(t.title)+'</h3><p class="small muted">'+esc(t.section)+' · 书 p.'+esc(t.pages)+' · '+TQ(t).length+' 题。点题目可单独练。</p>'+TQ(t).slice().sort((a,b)=>hfN(b)-hfN(a)).map(q=>{const c=card(q.id);const lab=c.b<0?'<span class="dot">新题</span>':isDue(q.id)?'<span class="dot due">到期</span>':'<span class="dot good">'+esc(c.due)+'</span>';return '<button class="qrow" data-q="'+q.id+'"><span><small>'+esc(PACK.engines[q.engine].name)+' · p.'+q.p+' '+hfTag(q)+'</small>'+esc(q.q)+'</span>'+lab+'</button>'}).join('')+'</section>').join('')+'<p class="small muted">目前收录按频率排在前面的话题，其余话题按“真题频率”的顺序陆续加入。</p>';
  document.querySelectorAll('[data-q]').forEach(b=>b.onclick=()=>train([byId(b.dataset.q)],0));
 };
 /* standard */
@@ -400,7 +468,15 @@ R.std=function(){
  '<p class="small muted">来源：<a href="https://ulc.gov.pl/_download/personel_lotniczy/ICAO_LPR/ratingscale.html" style="color:var(--var)">ICAO 分级表</a>，<a href="https://sfl.cafuc.edu.cn/__local/6/17/2C/8ACE741201BB160A1B83A652838_F55AC239_231EB.pdf" style="color:var(--var)">PEPEC 评分准则（中国民航飞行学院）</a>。中文要求是概括，不是官方译文。</p>';
 };
 /* boot */
-{let v='module';try{const x=localStorage.getItem('opip.view');if(x&&R[x])v=x}catch(e){}view=v;nav();try{R[v]()}catch(e){view='module';nav();R.module()}}
+nav();R.module();
+(async()=>{try{
+ const C=window.claude;if(!C||!C.use)return;
+ const [db,user,smp]=await Promise.all([C.use('db'),C.use('user'),C.use('sample')]);
+ sample=smp||null;
+ if(db&&user){const id=await user.id();if(id){const d=db.doc('data/users/'+id+'/opi');const sn=await d.get();
+  if(sn.exists&&sn.data()&&(sn.data().t||0)>(S.t||0)){S=Object.assign(S,sn.data());try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}if(view==='today')R.today();if(view==='module')R.module()}
+  dbDoc=d;syncTxt='已连接账号，换设备也能继续';const el=$('#sync');if(el)el.textContent=syncTxt}}
+}catch(e){}})();
 }
 
 const CK='opip.code',ge=document.getElementById('ge');
