@@ -106,7 +106,7 @@ details.recbox{border:1px dashed var(--rule);padding:8px 10px}details.recbox>sum
 
 <div id="gate" style="max-width:420px;margin:0 auto;padding:70px 16px"><h1 style="font-size:24px;margin:0">OPI 口试</h1><p>请输入验证码。</p><form id="gf"><input id="code" autocomplete="off" autocapitalize="characters" spellcheck="false" aria-label="验证码" placeholder="XXXX-XXXX-XXXX" style="width:100%;box-sizing:border-box;font:16px ui-monospace,Menlo,monospace;padding:10px"><p><button id="gb" style="padding:7px 18px">进入</button></p><p id="ge" hidden style="color:#c0392b"></p></form></div>
 <div id="shell" hidden><nav><div class="in" id="nav"></div></nav>
-<main class="wrap" id="app" aria-live="polite"></main><p style="text-align:center"><button id="out" style="font-size:13px">退出</button></p></div>
+<main class="wrap" id="app" aria-live="polite"></main><p style="text-align:center;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;align-items:center"><a href="../" style="font-size:13px;color:var(--var)">← 900 句</a><button id="upd" style="font-size:13px">检查更新</button><button id="out" style="font-size:13px">退出</button></p><p id="updMsg" class="small muted" style="text-align:center;margin:0 0 24px"></p></div>
 
 <!-- Reusable question pack: to add a topic, add one object to topics. The app code never needs to change. -->
 
@@ -654,6 +654,23 @@ const CK='opip.code',ge=document.getElementById('ge');
 async function enter(code,auto){const btn=document.getElementById('gb');btn.disabled=true;ge.hidden=true;try{const d=await unlock(code);if(!d){if(auto){try{localStorage.removeItem(CK)}catch(e){}}else{ge.textContent='验证码不正确，请核对后再试。';ge.hidden=false}btn.disabled=false;return}
   try{localStorage.setItem(CK,code)}catch(e){}document.getElementById('gate').hidden=true;document.getElementById('shell').hidden=false;app(d)}catch(e){ge.textContent='暂时打不开，请检查网络后再试。';ge.hidden=false;btn.disabled=false}}
 document.getElementById('gf').onsubmit=e=>{e.preventDefault();enter(document.getElementById('code').value.trim())};
+
+const OPIVER='202611082331',vlab=v=>v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12);
+const um=t=>{const e=document.getElementById('updMsg');if(e)e.textContent=t};um('当前版本 '+vlab(OPIVER));
+async function opiUpdate(){const b=document.getElementById('upd');b.disabled=true;
+ try{if(!window.caches){um('这个浏览器不支持离线更新，请直接刷新页面');return}if(navigator.onLine===false){um('设备离线，继续使用本机版本');return}
+  um('正在检查更新…');const g=(f,ms)=>{const ac=new AbortController(),t=setTimeout(()=>ac.abort(),ms);return fetch(f+'?nosw=1&t='+Date.now(),{cache:'no-store',signal:ac.signal}).then(r=>{clearTimeout(t);if(!r.ok)throw 0;return r.text()})};
+  const sw=await g('sw.js',10000),v=(/opip-(\d{12})/.exec(sw)||[])[1];if(!v){um('连不上 GitHub，继续使用本机版本，换个网络再试');return}
+  if(v<=OPIVER){um('已是最新（'+vlab(OPIVER)+'）');return}
+  um('发现新版本 '+vlab(v)+'，正在下载…');const F=[['index.html','id="gate"'],['keys.json','"salt"'],['data.enc','"ct"'],['manifest.webmanifest','icons']],got=[];
+  for(const [f,chk] of F){const t=await g(f,120000);if(t.indexOf(chk)<0)throw 0;got.push([f,t])}
+  const base=new URL('./',location.href).href,ty=f=>/html$/.test(f)?'text/html; charset=utf-8':'application/json';
+  const names=(await caches.keys()).filter(k=>k.startsWith('opip-'));if(!names.includes('opip-'+v))names.push('opip-'+v);
+  for(const n of names){const c=await caches.open(n);for(const [f,t] of got){await c.put(base+f,new Response(t,{headers:{'Content-Type':ty(f)}}));if(f==='index.html')await c.put(base,new Response(t,{headers:{'Content-Type':ty(f)}}))}}
+  try{const r=await navigator.serviceWorker.getRegistration();if(r)await r.update()}catch(e){}
+  um('已更新到 '+vlab(v)+'，正在刷新…');setTimeout(()=>location.reload(),600)}
+ catch(e){um('下载没有完成，已保留本机版本，请稍后再试')}finally{b.disabled=false}}
+document.getElementById('upd').onclick=opiUpdate;
 document.getElementById('out').onclick=()=>{try{localStorage.removeItem(CK)}catch(e){}location.reload()};
 try{const c=localStorage.getItem(CK);if(c)enter(c,true)}catch(e){}
 if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))navigator.serviceWorker.register('sw.js').catch(()=>{});
