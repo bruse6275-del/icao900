@@ -663,7 +663,7 @@ async function enter(code,auto){const btn=document.getElementById('gb');btn.disa
   try{localStorage.setItem(CK,code)}catch(e){}document.getElementById('gate').hidden=true;document.getElementById('shell').hidden=false;app(d)}catch(e){ge.textContent='暂时打不开，请检查网络后再试。';ge.hidden=false;btn.disabled=false}}
 document.getElementById('gf').onsubmit=e=>{e.preventDefault();enter(document.getElementById('code').value.trim())};
 
-const OPIVER='202611092300',vlab=v=>v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12);
+const OPIVER='202611092310',vlab=v=>v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12);
 const um=t=>{const e=document.getElementById('updMsg');if(e)e.textContent=t};um('当前版本 '+vlab(OPIVER));
 async function opiUpdate(){const b=document.getElementById('upd');b.disabled=true;
  try{if(!window.caches){um('这个浏览器不支持离线更新，请直接刷新页面');return}if(navigator.onLine===false){um('设备离线，继续使用本机版本');return}
