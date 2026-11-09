@@ -599,13 +599,17 @@ function recScore2(){const q=RC.q,box=RC.box;if(!q||!box)return;const txt=rq('[d
  let cov=null,miss=[],kcov=null,kmiss=[];
  if(nw>=8){const have=new Set(recToks(txt));const pts=recPoints(ref);let got=0;for(const p of pts){const h=p.k.filter(k=>have.has(k)).length;if(h/p.k.length>=0.34)got++;else miss.push(p.s)}cov=pts.length?got/pts.length:null;
   const K=memK(q);if(K){const kw=[...new Set(recToks(K[0].replace(/[①②③④]/g,' ')))];if(kw.length){const g=kw.filter(k=>have.has(k));kcov=g.length/kw.length;kmiss=K[0].split(/\s*[·→]\s*|\s*[①②③④]\s*/).filter(x=>x.trim()&&!recToks(x).some(k=>have.has(k)))}}}
+ const extra=[];if(nw>=8){const have=new Set(recToks(txt));const covOf=t=>{const pts=recPoints(t);if(!pts.length)return 0;let g=0;pts.forEach(p=>{if(p.k.filter(k=>have.has(k)).length/p.k.length>=0.34)g++});return g/pts.length};
+  Object.entries(q.fa||{}).forEach(([fq,a])=>{const c=covOf(a[0]);if(c>0.5)extra.push([fq,c])});
+  linkedOf(q).forEach(o=>{const c=covOf(refOf(o));if(c>0.5&&!extra.some(x=>x[0]===o.q))extra.push([o.q,c])});
+  extra.sort((a,b)=>b[1]-a[1]);extra.splice(4)}
  const marks=txt?recMarks(txt):[];const gErr=marks.filter(x=>x.type==='g').length,nRep=marks.filter(x=>x.type!=='g').length;
  const cx=(txt.match(/\b(while|when|because|which|who|so that|although|after|before|as a result|instead of|if|until|unless|would|could|in order to)\b/gi)||[]).length;
  const cont=words.map(recStem).filter(x=>x&&!RSTOP.has(x)&&x.length>=3);const ttr=cont.length?new Set(cont).size/cont.length:0;
  const conn=(txt.match(/\b(first|second|third|then|after that|as a result|however|finally|also|in addition|for example|because|so|but|when|while|although|therefore|in short|the most important)\b/gi)||[]).length;
  const span=P&&P.span?P.span:null;let wpm=span&&nw?Math.round(nw/(span/60)):null;if(wpm>220)wpm=null;
  const long=P?P.pauses.filter(p=>p.len>=2).length:null,silR=P&&P.span?P.sil/P.span:null;
- const lv={};const cc=cov==null?null:(kcov==null?cov:(cov+kcov)/2);
+ const lv={};let cc=cov==null?null:(kcov==null?cov:(cov+kcov)/2);if(cc!=null&&extra.length)cc=(cc+extra.reduce((a,x)=>a+x[1],0))/(1+extra.length);
  lv.c=cc==null?null:cc>=0.6?5:cc>=0.4?4:cc>=0.2?3:2;
  lv.s=!txt?null:(gErr/Math.max(nw,1)*100<=1.5&&cx>=2)?5:(gErr/Math.max(nw,1)*100<=9)?4:3;
  lv.v=!txt?null:(nw<40?3:(ttr>=0.5&&conn>=3)?5:4);
@@ -618,7 +622,8 @@ function recScore2(){const q=RC.q,box=RC.box;if(!q||!box)return;const txt=rq('[d
  h+=row('词汇',lv.v,!txt?'—':nw+' 词，用词重复度 '+Math.round((1-ttr)*100)+'%；连接词 '+conn+' 个（first / then / because / for example …）');
  h+=row('流利',lv.f,!P?(RC.blob?'录音解码失败，评不了停顿。':'没有录音，只按文字评了前三项。'):'有效时长 '+Math.round(P.span)+' 秒，停顿占 '+Math.round(silR*100)+'%，2 秒以上长停顿 '+long+' 次'+(wpm?'，语速约每分钟 '+wpm+' 词':'')+'（5 级大约要：停顿 ≤25%，长停顿 ≤1 次，每分钟 ≥90 词）');
  h+='<tr><th>发音</th><td class="lv lv0">—</td><td>要人听。转出来的文字里关键词错得离谱，通常说明那个词读得不清楚。</td></tr><tr><th>互动</th><td class="lv lv0">—</td><td>考场上看接追问、确认问题的能力，用“追问训练”练。</td></tr></table>';
- if(P&&P.span&&(P.span<30||P.span>120))h+='<p class="small" style="color:var(--prob)">'+(P.span<30?'这次只说了约 '+Math.round(P.span)+' 秒，偏短，考场上一题最好说到 45 秒以上。':'这次说了约 '+Math.round(P.span)+' 秒，偏长，考官可能会打断，60–90 秒比较合适。')+'</p>';
+ if(extra.length)h+='<p class="small">连答识别：除了本题，你还答了 '+extra.map(x=>'“'+esc(x[0])+'”（覆盖 '+Math.round(x[1]*100)+'%）').join('、')+'。理解分按这几问一起算'+(P&&P.span?'，平均每问约 '+Math.round(P.span/(1+extra.length))+' 秒':'')+'。</p>';
+ if(P&&P.span&&!extra.length&&(P.span<30||P.span>120))h+='<p class="small" style="color:var(--prob)">'+(P.span<30?'这次只说了约 '+Math.round(P.span)+' 秒，偏短，考场上一题最好说到 45 秒以上。':'这次说了约 '+Math.round(P.span)+' 秒，偏长，考官可能会打断，60–90 秒比较合适。')+'</p>';
  if(kmiss.length)h+='<h3 style="font-size:15px;margin-top:8px">没说到的速记关键词</h3><p class="small">'+kmiss.map(esc).join(' · ')+'</p>';
  if(marks.length){let o='',p=0,cor='',qq=0;marks.forEach((x,i)=>{o+=esc(txt.slice(p,x.s))+'<mark class="e'+x.type+'">'+esc(x.old)+'</mark><sup>'+(i+1)+'</sup>';p=x.e;const fx=x.fix&&/^[A-Z]/.test(x.old)?x.fix[0].toUpperCase()+x.fix.slice(1):x.fix;x.fix=fx;cor+=esc(txt.slice(qq,x.s))+(fx?'<ins>'+esc(fx)+'</ins>':'');qq=x.e});
   h+='<h3 style="font-size:15px;margin-top:8px">你的回答（标出了问题）</h3><div class="recann">'+o+esc(txt.slice(p))+'</div><ol class="small" style="padding-left:20px">'+marks.map(x=>'<li><mark class="e'+x.type+'">'+esc(x.old)+'</mark> → '+(x.fix?'<ins>'+esc(x.fix)+'</ins>':'删掉')+'　<span class="muted">'+esc(x.why)+'</span></li>').join('')+'</ol><h3 style="font-size:15px">改正后</h3><div class="recann">'+(cor+esc(txt.slice(qq))).replace(/\s{2,}/g,' ')+'</div>'}
@@ -658,7 +663,7 @@ async function enter(code,auto){const btn=document.getElementById('gb');btn.disa
   try{localStorage.setItem(CK,code)}catch(e){}document.getElementById('gate').hidden=true;document.getElementById('shell').hidden=false;app(d)}catch(e){ge.textContent='暂时打不开，请检查网络后再试。';ge.hidden=false;btn.disabled=false}}
 document.getElementById('gf').onsubmit=e=>{e.preventDefault();enter(document.getElementById('code').value.trim())};
 
-const OPIVER='202611091603',vlab=v=>v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12);
+const OPIVER='202611091608',vlab=v=>v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12);
 const um=t=>{const e=document.getElementById('updMsg');if(e)e.textContent=t};um('当前版本 '+vlab(OPIVER));
 async function opiUpdate(){const b=document.getElementById('upd');b.disabled=true;
  try{if(!window.caches){um('这个浏览器不支持离线更新，请直接刷新页面');return}if(navigator.onLine===false){um('设备离线，继续使用本机版本');return}
