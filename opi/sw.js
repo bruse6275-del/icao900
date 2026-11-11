@@ -1,4 +1,4 @@
-const C='opip-202611111349';const F=['./','./index.html','./keys.json','./data.enc','./data-me.enc','./manifest.webmanifest'];
+const C='opip-202611111603';const F=['./','./index.html','./keys.json','./data.enc','./data-me.enc','./manifest.webmanifest'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C&&k.startsWith('opip-')).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);if(u.origin!==location.origin||!u.pathname.includes('/opi/')||u.searchParams.has('nosw'))return;
