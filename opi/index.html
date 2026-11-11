@@ -421,8 +421,8 @@ R.memo=function(){S.memo=S.memo||{};const all=QL().filter(q=>memK(q)).sort((a,b)
   if(((S.set||{}).autoq)!==false)speak(q.q)};
  show()};
 R.pic=function(){
- $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">PICTURE QUESTIONS</div><h1 style="font-size:32px">看图题四步法</h1><p class="muted">考试的图可能换，答题结构不变。先说看到什么，再说原因、处置、预防，约 60–90 秒。</p></header>'+
- '<div class="s131" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div><b>1</b><span>看到<br>In this picture, I can see…</span></div><div><b>2</b><span>原因<br>It may be caused by…</span></div><div><b>3</b><span>处置<br>If I were the captain, I would…</span></div><div><b>4</b><span>预防<br>To avoid this, we should…</span></div></div>'+
+ $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">PICTURE QUESTIONS</div><h1 style="font-size:32px">看图题四步法</h1><p class="muted">考试的图可能换，句式不变。每道图都用下面四个固定句式，每块都是“三点”。考官问什么答什么：问“看到什么、发生了什么”就答 ① ②；问“你怎么办”答 ③；问“怎么预防”答 ④。考官不说话时四块连着说，控制在 90 秒内。</p></header>'+
+ '<div class="s131" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div><b>1</b><span>看到<br>In this picture, I can see … I can also see …</span></div><div><b>2</b><span>原因<br>I think there are three possible causes: A, B, or C. The most likely one is A.</span></div><div><b>3</b><span>处置<br>If I were the captain, I would do three things. First, I would … Second, I would … Third, I would …</span></div><div><b>4</b><span>预防<br>To stay safe, we should do three things: A, B, and C.</span></div></div>'+
  '<div class="row"><button class="primary grow" id="pa">随机练一轮（5 题）</button></div>'+
  '<section style="display:grid;gap:8px">'+PICS.slice().sort((a,b)=>b.n-a.n).map(x=>{const c=card(x.id);return '<button class="qrow" data-pic="'+x.id+'"><span><small>'+(x.n?'回忆约 '+x.n+' 场 · ':'书上配图 · ')+esc(x.p)+'</small>'+esc(x.title)+'</span>'+(c.b<0?'<span class="dot">新题</span>':isDue(x.id)?'<span class="dot due">到期</span>':'<span class="dot good">已练</span>')+'</button>'}).join('')+'</section><p class="small muted">场数是我根据图片归类估算的。图片来自你的回忆和书，考试的图可能不同。</p>';
  $('#pa').onclick=()=>picRun(shuffle(PICS).slice(0,5),0);
@@ -689,7 +689,7 @@ async function enter(code,auto){const btn=document.getElementById('gb');btn.disa
   try{localStorage.setItem(CK,code)}catch(e){}document.getElementById('gate').hidden=true;document.getElementById('shell').hidden=false;app(d)}catch(e){if(auto)document.getElementById('code').value=code;ge.textContent='暂时打不开（网络不好），'+(auto?'验证码已填好，':'')+'点“进入”重试。';ge.hidden=false;btn.disabled=false}}
 document.getElementById('gf').onsubmit=e=>{e.preventDefault();enter(document.getElementById('code').value.trim())};
 
-const OPIVER='202611112251',vlab=v=>v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12);
+const OPIVER='202611112259',vlab=v=>v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12);
 const um=t=>{const e=document.getElementById('updMsg');if(e)e.textContent=t};um('当前版本 '+vlab(OPIVER));
 async function opiUpdate(){const b=document.getElementById('upd');b.disabled=true;
  try{if(!window.caches){um('这个浏览器不支持离线更新，请直接刷新页面');return}if(navigator.onLine===false){um('设备离线，继续使用本机版本');return}
