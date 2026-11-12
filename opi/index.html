@@ -186,7 +186,7 @@ function timerHTML(sec){return '<div class="timer" id="tm"><div class="tnum" id=
 function startTimer(sec){stopTimer();let left=sec;const el=$('#tm');if(!el)return;const paint=()=>{const n=$('#tn'),b=$('#tb');if(!n)return stopTimer();n.textContent=left>=0?left:'+'+(-left);b.style.width=Math.max(0,left/sec*100)+'%';el.classList.toggle('over',left<0)};paint();tick=setInterval(()=>{left--;paint()},1000)}
 /* nav */
 let view='module';
-const TABS=[['module','模块速通'],['today','今日训练'],['mock','模拟口试'],['ans','高频答案本'],['memo','速记卡'],['hot','高频题'],['pic','看图题'],['chain','追问训练'],['cold','陌生题'],['real','真题频率'],['bank','题库'],['cov','覆盖表'],['tts','设置和备份'],['std','5 级标准']];
+const TABS=[['module','模块速通'],['today','今日训练'],['mock','模拟口试'],['ans','高频答案本'],['recall','900句和通话回忆'],['memo','速记卡'],['hot','高频题'],['pic','看图题'],['chain','追问训练'],['cold','陌生题'],['real','真题频率'],['bank','题库'],['cov','覆盖表'],['tts','设置和备份'],['std','5 级标准']];
 function nav(){$('#nav').innerHTML='<button id="rmt" aria-pressed="'+RM()+'" style="white-space:nowrap;font-weight:700;'+(RM()?'background:#0B6E8A;color:#fff;border-color:#0B6E8A':'')+'">'+(RM()?'✓ 只看回忆题':'只看回忆题')+'</button>'+TABS.map(([k,l])=>'<button data-nav="'+k+'"'+(view===k?' aria-current="page"':'')+'>'+l+'</button>').join('')+''}
 function go(v){stopTimer();try{speechSynthesis&&speechSynthesis.cancel()}catch(e){}view=v;nav();R[v]();window.scrollTo(0,0)}
 document.addEventListener('click',e=>{if(e.target.closest('#rmt')){S.set.recall=!RM();save();go(view);return}const n=e.target.closest('[data-nav]');if(n)go(n.dataset.nav)});
@@ -420,6 +420,17 @@ R.memo=function(){S.memo=S.memo||{};const all=QL().filter(q=>memK(q)).sort((a,b)
   const b1=$('#b1');let st=0;b1.onclick=()=>{if(st===0){$('#k1').hidden=false;$('#k1').style.display='grid';b1.textContent='2. 用关键词说一遍，再看答案';st=1}else if(st===1){$('#k2').hidden=false;b1.parentNode.innerHTML='<button class="primary grow" id="ok">记住了</button><button class="grow" id="ag">没记住，再来</button>';$('#ok').onclick=()=>{S.memo[q.id]=c+1;save();i++;show();window.scrollTo(0,0)};$('#ag').onclick=()=>{S.memo[q.id]=0;save();i++;show();window.scrollTo(0,0)}}};
   if(((S.set||{}).autoq)!==false)speak(q.q)};
  show()};
+R.recall=function(){const X=PACK.recall||{comm:[],n900:[],key:[]};const P3='https://bruse6275-del.github.io/icao900/part3.html';
+ $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">EXAM RECALL</div><h1 style="font-size:32px">900 句和陆空通话回忆</h1><p class="muted">陆空通话按 '+X.ns+' 场回忆整理；900 句只有 4 场回忆写了句号（截至 2026.11.12）。</p></header>'+
+ '<section class="sheet" style="display:grid;gap:8px"><h2 style="font-size:22px;margin:0">一、900 句考到哪里</h2>'+
+ '<div style="background:#E8F4F7;border-radius:10px;padding:10px 12px"><b>结论：</b>回忆里报的句号都在 <b>300–700</b> 之间，没有超过 700 多。<br>900 句的章节对应：<br>第 1 章 基本 1–85 · 第 2 章 机场 86–223 · 第 3 章 雷达 224–294 · 第 4 章 进近 295–381 · 第 5 章 区域 382–440 · <b>第 6 章 紧急 441–700</b> · 第 7 章 气象 701–800 · 第 8 章 其他 801–900。<br>所以重点是 <b>第 1–6 章</b>，尤其是 <b>第 6 章紧急通话（441–700）</b>，第 7、8 章几乎没考到。</div>'+
+ X.n900.map(x=>'<p style="margin:0"><b>'+esc(x.s)+'</b>：'+esc(x.t)+'</p>').join('')+
+ '<h3 style="font-size:16px;margin:8px 0 0">回忆里点到的句号对应的句子</h3><p class="small muted" style="margin:0">（只列回忆里给了确切句号的；“左右”的没列）</p>'+
+ X.key.map(k=>'<div style="border-top:1px solid var(--rule);padding:6px 0"><div class="small muted mono">第 '+k.no+' 句 · 第 '+'一二三四五六七八'[['基本通话术语','机场通话术语','雷达通话术语','进近通话术语','区域通话术语','紧急通话情况','气象及其他现象','其他术语'].indexOf(k.ch)]+' 章 '+esc(k.ch)+' 第 '+k.l+' 句</div><div><button class="small" data-sayr="'+esc(k.en)+'" style="min-width:44px;padding:4px 10px;margin-right:6px">▶</button>'+esc(k.en)+'</div><div class="zh small">'+esc(k.zh)+'</div></div>').join('')+'</section>'+
+ '<section class="sheet" style="display:grid;gap:8px"><h2 style="font-size:22px;margin:0">二、陆空通话考过的题</h2><p class="small muted" style="margin:0">按出现场数排；同一场重复的只算一次。标“模拟库有”的可以在 <a href="'+P3+'" target="_blank" rel="noopener">模拟陆空通话</a> 里直接练。</p>'+
+ X.comm.map((r,i)=>'<div style="border-top:1px solid var(--rule);padding:8px 0;display:grid;gap:2px"><div><b style="color:#B3262B">'+(i+1)+'. '+esc(r.cs)+'</b> <span class="hot '+(r.n>=4?'h3':r.n>=2?'h2':'h1')+'">考过 '+r.n+' 场</span>'+(r.bank?' <span class="small" style="color:#1f6f4a">✓ 模拟库有</span>':'')+(r.last.startsWith('2026.11.12')?' <span class="small" style="color:#B3262B">11.12 新</span>':'')+'</div><div>'+esc(r.d)+'</div><div class="small muted">'+r.s.map(esc).join('、')+'</div></div>').join('')+'</section>';
+ document.querySelectorAll('[data-sayr]').forEach(b=>b.onclick=()=>speak(b.dataset.sayr));
+};
 R.pic=function(){
  $('#app').innerHTML='<header style="display:grid;gap:6px"><div class="eyebrow">PICTURE QUESTIONS</div><h1 style="font-size:32px">看图题四步法</h1><p class="muted">考试的图可能换，句式不变。每道图都用下面四个固定句式，每块都是“三点”。考官问什么答什么：问“看到什么、发生了什么”就答 ① ②；问“你怎么办”答 ③；问“怎么预防”答 ④。考官不说话时四块连着说，控制在 90 秒内。</p></header>'+
  '<div class="s131" style="grid-template-columns:repeat(4,minmax(0,1fr))"><div><b>1</b><span>看到<br>In this picture, I can see … I can also see …</span></div><div><b>2</b><span>原因<br>I think there are three possible causes: A, B, or C. The most likely one is A.</span></div><div><b>3</b><span>处置<br>If I were the captain, I would do three things. First, I would … Second, I would … Third, I would …</span></div><div><b>4</b><span>预防<br>To stay safe, we should do three things: A, B, and C.</span></div></div>'+
@@ -689,7 +700,7 @@ async function enter(code,auto){const btn=document.getElementById('gb');btn.disa
   try{localStorage.setItem(CK,code)}catch(e){}document.getElementById('gate').hidden=true;document.getElementById('shell').hidden=false;app(d)}catch(e){if(auto)document.getElementById('code').value=code;ge.textContent='暂时打不开（网络不好），'+(auto?'验证码已填好，':'')+'点“进入”重试。';ge.hidden=false;btn.disabled=false}}
 document.getElementById('gf').onsubmit=e=>{e.preventDefault();enter(document.getElementById('code').value.trim())};
 
-const OPIVER='202611121715',vlab=v=>v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12);
+const OPIVER='202611121730',vlab=v=>v.slice(4,6)+'-'+v.slice(6,8)+' '+v.slice(8,10)+':'+v.slice(10,12);
 const um=t=>{const e=document.getElementById('updMsg');if(e)e.textContent=t};um('当前版本 '+vlab(OPIVER));
 async function opiUpdate(){const b=document.getElementById('upd');b.disabled=true;
  try{if(!window.caches){um('这个浏览器不支持离线更新，请直接刷新页面');return}if(navigator.onLine===false){um('设备离线，继续使用本机版本');return}
