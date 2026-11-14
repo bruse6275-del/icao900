@@ -1,4 +1,4 @@
-const C='icao900-202611130751';const F=['./','./index.html','./retell.html','./part3.html','./opi.html','./update.js','./dict.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
+const C='icao900-202611141216';const F=['./','./index.html','./retell.html','./part3.html','./opi.html','./update.js','./dict.js','./manifest.webmanifest','./icon-192.png','./icon-512.png','./apple-touch-icon.png'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(C).then(c=>c.addAll(F.map(u=>new Request(u,{cache:'reload'})))).then(()=>self.skipWaiting()))});
 self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==C&&k!=='icao900-audio'&&k!=='icao900-opi').map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
 self.addEventListener('fetch',e=>{if(e.request.method!=='GET')return;const u=new URL(e.request.url);if(u.hostname==='resource.feizhiyi.com'){e.respondWith(caches.open('icao900-audio').then(c=>c.match(e.request.url).then(r=>r||fetch(e.request))));return}if(u.origin!==location.origin||u.searchParams.has('nosw'))return;
