@@ -1,0 +1,298 @@
+<!doctype html><html lang="zh-CN"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>ICAO 听力理解</title>
+<link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#14202B"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="ICAO 听力"><link rel="apple-touch-icon" href="apple-touch-icon.png">
+<style>
+:root{
+  --bg:#eef1f4; --panel:#ffffff; --ink:#18212b; --muted:#5d6b7a; --line:#d5dce3;
+  --strip:#fff7e0; --accent:#c77700; --accent-ink:#ffffff; --ok:#1f8a4c; --bad:#c0392b; --soft:#e4e9ee;
+  --sans:-apple-system,"PingFang SC","Noto Sans SC","Microsoft YaHei",system-ui,sans-serif;
+  --mono:ui-monospace,Menlo,monospace; color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#12171d; --panel:#1b222a; --ink:#e6ebf0; --muted:#93a1af; --line:#2c3640;
+  --strip:#2a2416; --accent:#f0a030; --accent-ink:#1a1206; --ok:#4cc27e; --bad:#ff7a6b; --soft:#232c35; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12171d; --panel:#1b222a; --ink:#e6ebf0; --muted:#93a1af; --line:#2c3640;
+  --strip:#2a2416; --accent:#f0a030; --accent-ink:#1a1206; --ok:#4cc27e; --bad:#ff7a6b; --soft:#232c35; color-scheme:dark}
+*{box-sizing:border-box}[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.6 var(--sans);padding:max(14px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 60px max(16px,env(safe-area-inset-left))}
+.w{max-width:760px;margin:0 auto}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 12px;margin-bottom:12px}
+h1{font-size:21px;margin:0;font-weight:650}
+.sub{color:var(--muted);font-size:13px}
+a.back{margin-left:auto;font-size:13px;color:var(--accent);text-decoration:none}
+.upd{font:13px var(--sans);background:none;border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:3px 9px;cursor:pointer}
+.updst{font-size:12px;color:var(--muted)}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px;margin:10px 0}
+.card h2{font-size:16px;margin:0 0 6px}
+.mute{color:var(--muted);font-size:13px}
+button.pri,.filebtn{display:inline-block;font:600 14px var(--sans);background:var(--accent);color:var(--accent-ink);border:0;border-radius:8px;padding:9px 16px;cursor:pointer}
+button.sec{font:14px var(--sans);background:var(--soft);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 14px;cursor:pointer}
+button:disabled{opacity:.5;cursor:default}
+.opt:disabled{opacity:1;cursor:default}
+.mods{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.mods{grid-template-columns:1fr}}
+.mod{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px 14px;cursor:pointer;text-align:left;font:inherit;color:inherit}
+.mod b{display:block;font-size:15px}
+.mod .bar{height:5px;background:var(--soft);border-radius:3px;margin:8px 0 4px;overflow:hidden}
+.mod .bar i{display:block;height:100%;background:var(--ok)}
+.mod .n{font:12px var(--mono);color:var(--muted)}
+.row{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.set label{display:flex;align-items:center;gap:6px;font-size:14px;margin:6px 0}
+select{font:14px var(--sans);padding:4px 6px;border-radius:6px;border:1px solid var(--line);background:var(--panel);color:var(--ink)}
+/* quiz */
+.qtop{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.qtop .mode{font-weight:600}
+.qtop .pos{font:13px var(--mono);color:var(--muted)}
+.qtop .home{margin-left:auto}
+.player{display:flex;align-items:center;gap:10px;background:var(--strip);border:1px solid var(--line);border-radius:12px;padding:12px}
+.play{width:56px;height:56px;border-radius:50%;border:0;background:var(--accent);color:var(--accent-ink);font-size:22px;cursor:pointer;flex:none}
+.player .info{flex:1;min-width:0}
+.prog{height:5px;background:var(--soft);border-radius:3px;overflow:hidden;margin-top:6px}
+.prog i{display:block;height:100%;width:0;background:var(--accent)}
+.stem{margin:12px 0 4px;font-size:16px}
+.stem .q{font-weight:600}
+.stem .zh{color:var(--muted);font-size:14px;margin-top:4px}
+.opts{display:flex;flex-direction:column;gap:8px;margin:12px 0}
+.opt{display:flex;gap:10px;align-items:flex-start;text-align:left;font:15px/1.45 var(--sans);background:var(--panel);color:var(--ink);border:1.5px solid var(--line);border-radius:10px;padding:10px 12px;cursor:pointer;width:100%}
+.opt .k{font:700 14px var(--mono);flex:none;width:20px}
+.opt .zh{display:block;color:var(--muted);font-size:13px}
+.opt.ok{border-color:var(--ok);background:color-mix(in srgb,var(--ok) 12%,var(--panel))}
+.opt.bad{border-color:var(--bad);background:color-mix(in srgb,var(--bad) 12%,var(--panel))}
+.fb{font-weight:650;margin:4px 0}
+.fb.ok{color:var(--ok)}.fb.bad{color:var(--bad)}
+.exp{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--accent);border-radius:8px;padding:10px 12px;margin:8px 0;font-size:14px}
+.nav{display:flex;gap:8px;margin-top:12px}
+.nav button{flex:1}
+.star{background:none;border:0;font-size:20px;cursor:pointer;color:var(--muted);padding:0 4px}
+.star.on{color:var(--accent)}
+.grid{display:flex;flex-wrap:wrap;gap:5px;margin-top:10px}
+.grid button{font:12px var(--mono);min-width:38px;padding:5px 0;border:1px solid var(--line);background:var(--soft);color:var(--ink);border-radius:5px;cursor:pointer}
+.grid button.c{background:color-mix(in srgb,var(--ok) 22%,var(--panel));border-color:var(--ok)}
+.grid button.x{background:color-mix(in srgb,var(--bad) 20%,var(--panel));border-color:var(--bad)}
+.grid button.on{outline:2px solid var(--accent)}
+.sum{font-size:28px;font-weight:700}
+</style></head><body><div class="w">
+
+<header>
+  <h1>Part 1 听力理解</h1><span class="sub" id="hsub">PEPEC 第一部分 · 单选</span>
+  <a class="back" href="index.html">← 首页</a>
+  <span style="flex-basis:100%"></span>
+  <button class="upd" id="p1Upd" type="button">⟳ 检查更新</button><span class="updst" id="p1UpdSt"><span id="verTag"></span></span>
+</header>
+
+<!-- 导入 -->
+<section id="vImp" class="card" hidden>
+  <h2>先导入题库文件</h2>
+  <p class="mute">题库内容版权归飞行之翼，不放在公开网站上。请导入你自己导出的 <b>ICAO_Part1…md</b> 文件，导入后保存在这台设备上，只需导入一次，之后离线也能做题。换设备时再导入一次。</p>
+  <label class="filebtn" for="p1file">导入题库文件</label>
+  <input type="file" id="p1file" accept=".md,.txt,text/markdown,text/plain" hidden>
+  <p class="mute" id="impSt"></p>
+</section>
+
+<!-- 首页 -->
+<section id="vHome" hidden>
+  <div class="mods" id="mods"></div>
+  <div class="mods" style="margin-top:10px">
+    <button class="mod" id="goWrong"><b>错题本</b><span class="n" id="nWrong"></span><div class="mute">最近一次答错的题；做对一次就移出</div></button>
+    <button class="mod" id="goFav"><b>收藏</b><span class="n" id="nFav"></span><div class="mute">点题目右上角的 ☆ 收藏</div></button>
+    <button class="mod" id="goMock"><b>随机 20 题</b><span class="n">四个模块混合</span><div class="mute">像考试一样：不看题干，只听音频</div></button>
+    <button class="mod" id="goNew"><b>没做过的题</b><span class="n" id="nNew"></span><div class="mute">按模块顺序，跳过做过的</div></button>
+  </div>
+  <div class="card set">
+    <h2>设置</h2>
+    <label><input type="checkbox" id="sAuto" checked> 进题自动播放</label>
+    <label><input type="checkbox" id="sStem"> 答题前显示题干原文（关掉更接近考试）</label>
+    <label><input type="checkbox" id="sZh"> 答题前显示选项中文</label>
+    <label>播放次数上限 <select id="sMax"><option value="0">不限</option><option value="2">2 次</option><option value="1">1 次</option></select></label>
+    <label>语速 <select id="sRate"><option value="0.8">0.8x</option><option value="0.9">0.9x</option><option value="1" selected>1.0x</option><option value="1.1">1.1x</option><option value="1.25">1.25x</option></select></label>
+  </div>
+  <div class="card">
+    <h2>录音离线</h2>
+    <p class="mute">音频默认联网播放。想没网也能听，可以按模块下载到本机（全部约 965 条）。</p>
+    <div class="row" id="dlRow"></div>
+    <p class="mute" id="dlSt"></p>
+  </div>
+  <div class="card">
+    <h2>题库</h2>
+    <p class="mute" id="dbInfo"></p>
+    <div class="row"><label class="filebtn" for="p1file2" style="background:var(--soft);color:var(--ink);font-weight:400;border:1px solid var(--line)">重新导入</label><input type="file" id="p1file2" accept=".md,.txt,text/markdown,text/plain" hidden>
+    <button class="sec" id="resetSt">清空做题记录</button></div>
+  </div>
+</section>
+
+<!-- 做题 -->
+<section id="vQuiz" hidden>
+  <div class="qtop"><span class="mode" id="qMode"></span><span class="pos" id="qPos"></span><button class="star" id="qStar" aria-label="收藏">☆</button><button class="sec home" id="qHome">返回</button></div>
+  <div class="player">
+    <button class="play" id="qPlay" aria-label="播放">▶</button>
+    <div class="info"><div id="qPlayInfo" class="mute">点 ▶ 播放</div><div class="prog"><i id="qProg"></i></div></div>
+  </div>
+  <audio id="aud" preload="auto"></audio>
+  <div class="stem" id="qStem"></div>
+  <div class="opts" id="qOpts"></div>
+  <div id="qAfter"></div>
+  <div class="nav"><button class="sec" id="qPrev">上一题</button><button class="sec" id="qGridBtn">题号</button><button class="pri" id="qNext">下一题</button></div>
+  <div class="grid" id="qGrid" hidden></div>
+</section>
+
+<!-- 结果 -->
+<section id="vSum" class="card" hidden>
+  <h2>本轮结果</h2>
+  <div class="sum" id="sumN"></div>
+  <p class="mute" id="sumT"></p>
+  <div class="row"><button class="pri" id="sumWrong">只看这轮错题</button><button class="sec" id="sumHome">返回首页</button></div>
+</section>
+
+<footer class="mute" style="margin-top:24px">题目版权归飞行之翼所有，本整理仅用于个人学习备考，请勿外传或商用。</footer>
+</div>
+
+<script>
+const $=id=>document.getElementById(id);
+const MODS=["10秒航空英语","10秒陆空通话","20秒航空英语","20秒陆空通话"];
+const DCACHE="icao900-p1data", ACACHE="icao900-audio", SK="p1.st.v1", CK="p1.cfg.v1";
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let Q=[], ST={}, CFG={auto:true,stem:false,zh:false,max:0,rate:1};
+try{ST=JSON.parse(localStorage.getItem(SK)||"{}")}catch(e){}
+try{Object.assign(CFG,JSON.parse(localStorage.getItem(CK)||"{}"))}catch(e){}
+const saveST=()=>{try{localStorage.setItem(SK,JSON.stringify(ST))}catch(e){}};
+const saveCFG=()=>{try{localStorage.setItem(CK,JSON.stringify(CFG))}catch(e){}};
+if(!ST.r)ST.r={}; if(!ST.fav)ST.fav={};
+
+/* ---------- 解析题库 md ---------- */
+function parse(md){
+  const out=[];const parts=md.split(/\n#### /).slice(1);
+  for(const p of parts){
+    const hd=p.split("\n")[0];
+    const m=/([0-9]+\.[0-9]+)\s+(\S+)\s+第\s*(\d+)\s*题（ID\s*(\d+)\s+全局\s*#(\d+)）/.exec(hd);
+    if(!m)continue;
+    const mod=MODS.indexOf(m[2]);if(mod<0)continue;
+    const au=(/<(https?:\/\/[^>\s]+\.mp3)>/i.exec(p)||[])[1]||"";
+    const quote=lab=>{const i=p.indexOf("**"+lab+"**");if(i<0)return"";const rest=p.slice(i+lab.length+4);const L=[];let started=false;
+      for(const ln of rest.split("\n")){if(/^>\s?/.test(ln)){L.push(ln.replace(/^>\s?/,""));started=true}else if(started&&ln.trim()!=="")break;else if(started)break}
+      return L.join(" ").trim()};
+    let en=quote("原文"),zh=quote("中文翻译"),ex="";
+    const ej=/【解析[:：]?([^】]*)】/.exec(en);if(ej){ex=ej[1].trim();en=en.replace(ej[0],"").trim()}
+    const zj=/【解析[:：]?([^】]*)】/.exec(zh);if(zj){if(!ex)ex=zj[1].trim();zh=zh.replace(zj[0],"").trim()}
+    const opts=[];let ans=-1;
+    for(const ln of p.split("\n")){const o=/^\|\s*([A-D])\s*(✅)?\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*$/.exec(ln);
+      if(o){if(o[2])ans=opts.length;opts.push([o[3],o[4]])}}
+    if(ans<0){const a=/\*\*正确答案[:：]\s*([A-D])/.exec(p);if(a)ans="ABCD".indexOf(a[1])}
+    if(opts.length<2||ans<0)continue;
+    out.push({g:+m[5],id:+m[4],mod,au,en,zh,ex,o:opts,a:ans});
+  }
+  out.sort((a,b)=>a.g-b.g);return out;
+}
+async function saveDB(arr){const c=await caches.open(DCACHE);await c.put("./p1-data.json",new Response(JSON.stringify(arr),{headers:{"Content-Type":"application/json"}}))}
+async function loadDB(){try{const c=await caches.open(DCACHE);const r=await c.match("./p1-data.json");if(r)return await r.json()}catch(e){}
+  try{const s=localStorage.getItem("p1.db.v1");if(s)return JSON.parse(s)}catch(e){}return null}
+async function onFile(f,st){if(!f)return;st.textContent="正在读取…";
+  try{const t=await f.text();const arr=parse(t);
+    if(arr.length<50){st.textContent="没有识别出题目。请确认选的是 Part 1 听力理解的 md 文件。";return}
+    try{await saveDB(arr)}catch(e){try{localStorage.setItem("p1.db.v1",JSON.stringify(arr))}catch(e2){st.textContent="保存失败：设备存储空间不足。";return}}
+    Q=arr;st.textContent="";show("home")}catch(e){st.textContent="读取失败："+e.message}}
+$("p1file").onchange=e=>onFile(e.target.files[0],$("impSt"));
+$("p1file2").onchange=e=>onFile(e.target.files[0],$("dbInfo"));
+
+/* ---------- 视图 ---------- */
+function show(v){for(const k of ["Imp","Home","Quiz","Sum"])$("v"+k).hidden=k.toLowerCase()!==v;
+  if(v!=="quiz"){const a=$("aud");a.pause()}
+  if(v==="home")renderHome();window.scrollTo(0,0)}
+const rec=g=>ST.r[g];
+const isWrong=g=>rec(g)&&rec(g).l===0;
+function renderHome(){
+  $("mods").innerHTML=MODS.map((n,i)=>{const L=Q.filter(q=>q.mod===i);const d=L.filter(q=>rec(q.g)).length;const c=L.filter(q=>rec(q.g)&&rec(q.g).l===1).length;
+    const acc=d?Math.round(c/d*100):0;
+    return `<button class="mod" data-m="${i}"><b>${n}</b><div class="bar"><i style="width:${L.length?d/L.length*100:0}%"></i></div><span class="n">已做 ${d} / ${L.length}${d?` · 正确率 ${acc}%`:""}</span></button>`}).join("");
+  $("mods").querySelectorAll(".mod").forEach(b=>b.onclick=()=>{const m=+b.dataset.m;const L=Q.filter(q=>q.mod===m);const at=Math.max(0,L.findIndex(q=>!rec(q.g)));start(MODS[m],L,ST["pos"+m]!=null?ST["pos"+m]:at,"pos"+m)});
+  const W=Q.filter(q=>isWrong(q.g)),F=Q.filter(q=>ST.fav[q.g]),N=Q.filter(q=>!rec(q.g));
+  $("nWrong").textContent=W.length+" 题";$("nFav").textContent=F.length+" 题";$("nNew").textContent=N.length+" 题";
+  $("goWrong").onclick=()=>{const L=Q.filter(q=>isWrong(q.g));if(L.length)start("错题本",L,0,null,{wrongMode:true})};
+  $("goFav").onclick=()=>{const L=Q.filter(q=>ST.fav[q.g]);if(L.length)start("收藏",L,0,null)};
+  $("goNew").onclick=()=>{const L=Q.filter(q=>!rec(q.g));if(L.length)start("没做过的题",L,0,null)};
+  $("goMock").onclick=()=>{const L=Q.slice();for(let i=L.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[L[i],L[j]]=[L[j],L[i]]}start("随机 20 题",L.slice(0,20),0,null,{mock:true})};
+  $("sAuto").checked=CFG.auto;$("sStem").checked=CFG.stem;$("sZh").checked=CFG.zh;$("sMax").value=String(CFG.max);$("sRate").value=String(CFG.rate);if(!$("sRate").value)$("sRate").value="1";
+  $("dbInfo").textContent=`已导入 ${Q.length} 题（${MODS.map((n,i)=>n+" "+Q.filter(q=>q.mod===i).length).join(" · ")}）`;
+  $("dlRow").innerHTML=MODS.map((n,i)=>`<button class="sec" data-d="${i}">${n}</button>`).join("");
+  $("dlRow").querySelectorAll("button").forEach(b=>b.onclick=()=>dl(+b.dataset.d));
+}
+$("sAuto").onchange=e=>{CFG.auto=e.target.checked;saveCFG()};
+$("sStem").onchange=e=>{CFG.stem=e.target.checked;saveCFG()};
+$("sZh").onchange=e=>{CFG.zh=e.target.checked;saveCFG()};
+$("sMax").onchange=e=>{CFG.max=+e.target.value;saveCFG()};
+$("sRate").onchange=e=>{CFG.rate=+e.target.value;saveCFG()};
+$("resetSt").onclick=()=>{const b=$("resetSt");if(b.dataset.c!=="1"){b.dataset.c="1";b.textContent="再点一次确认清空";setTimeout(()=>{b.dataset.c="";b.textContent="清空做题记录"},3000);return}
+  ST={r:{},fav:{}};saveST();b.dataset.c="";b.textContent="已清空";renderHome()};
+
+/* ---------- 音频 ---------- */
+let blobURL=null;
+async function srcFor(u){if(!u)return"";try{const c=await caches.open(ACACHE);const r=await c.match(u);if(r){const b=await r.blob();if(b.size>1000){if(blobURL)URL.revokeObjectURL(blobURL);blobURL=URL.createObjectURL(b);return blobURL}}}catch(e){}return u}
+async function dl(m){const L=Q.filter(q=>q.mod===m&&q.au);let ok=0,fail=0;const c=await caches.open(ACACHE);
+  for(const q of L){if(await c.match(q.au)){ok++;continue}
+    try{const r=await fetch(q.au,{mode:"cors"});if(!r.ok)throw 0;await c.put(q.au,new Response(await r.blob(),{headers:{"Content-Type":"audio/mpeg"}}));ok++}catch(e){fail++}
+    $("dlSt").textContent=`${MODS[m]}：正在下载… ${ok+fail} / ${L.length}`}
+  $("dlSt").textContent=fail?`${MODS[m]}：已下载 ${ok} 条，${fail} 条失败，可以再点一次重试。`:`${MODS[m]}：全部 ${ok} 条已下载到本机。`}
+
+/* ---------- 做题 ---------- */
+let S={name:"",L:[],i:0,posKey:null,opt:{},ans:{},plays:0};
+function start(name,L,i,posKey,opt){S={name,L,i:Math.min(i,L.length-1),posKey,opt:opt||{},ans:{},plays:0};$("qGrid").hidden=true;show("quiz");render()}
+const a=$("aud");
+a.ontimeupdate=()=>{$("qProg").style.width=(a.duration?a.currentTime/a.duration*100:0)+"%"};
+a.onended=()=>{$("qPlay").textContent="▶";playInfo()};
+a.onpause=()=>{$("qPlay").textContent="▶"};
+a.onplay=()=>{$("qPlay").textContent="❚❚"};
+function playInfo(){const q=S.L[S.i];const lim=CFG.max&&!answered()?`（上限 ${CFG.max} 次）`:"";
+  $("qPlayInfo").textContent=!q.au?"这题没有音频":S.plays?`已播放 ${S.plays} 次${lim}`:"点 ▶ 播放"+lim}
+const answered=()=>S.ans[S.L[S.i].g]!=null;
+function play(){const q=S.L[S.i];if(!q.au)return;
+  if(!a.paused){a.pause();return}
+  if(a.currentTime>0&&!a.ended&&a.currentTime<a.duration){a.play().catch(()=>{});return}
+  if(CFG.max&&!answered()&&S.plays>=CFG.max){$("qPlayInfo").textContent=`已到 ${CFG.max} 次上限，答完题后可以随便听`;return}
+  S.plays++;a.currentTime=0;a.playbackRate=CFG.rate;a.play().then(playInfo).catch(()=>{$("qPlayInfo").textContent="播放失败：检查网络，或先在首页下载录音"})}
+$("qPlay").onclick=play;
+async function render(){const q=S.L[S.i];S.plays=0;a.pause();a.removeAttribute("src");$("qProg").style.width="0";
+  $("qMode").textContent=S.name;$("qPos").textContent=`${S.i+1} / ${S.L.length}`;
+  $("qStar").textContent=ST.fav[q.g]?"★":"☆";$("qStar").classList.toggle("on",!!ST.fav[q.g]);
+  $("hsub").textContent=MODS[q.mod]+" · 题库 #"+q.g;
+  const done=answered();renderBody();playInfo();
+  $("qPrev").disabled=S.i===0;$("qNext").textContent=S.i===S.L.length-1?"完成":"下一题";
+  if(!$("qGrid").hidden)renderGrid();
+  const src=await srcFor(q.au);if(S.L[S.i]!==q)return;a.src=src;a.playbackRate=CFG.rate;
+  if(CFG.auto&&!done&&q.au){S.plays++;a.play().then(playInfo).catch(()=>{S.plays--;playInfo()})}}
+function splitQ(en){const m=/\s(Q(?:uestion)?\s*\d*\s*[:：.].*)$/i.exec(en);return m?[en.slice(0,m.index).trim(),m[1].trim()]:[en,""]}
+function renderBody(){const q=S.L[S.i];const sel=S.ans[q.g];const done=sel!=null;
+  const [body,qq]=splitQ(q.en);
+  if(done||CFG.stem)$("qStem").innerHTML=`<div>${esc(body)}</div>${qq?`<div class="q">${esc(qq)}</div>`:""}${done?`<div class="zh">${esc(q.zh)}</div>`:""}`;
+  else $("qStem").innerHTML=qq?`<div class="mute">题干只在音频里。听完选答案。</div>`:`<div class="mute">听完选答案。</div>`;
+  $("qOpts").innerHTML=q.o.map((o,k)=>{let c="";if(done){if(k===q.a)c="ok";else if(k===sel)c="bad"}
+    return `<button class="opt ${c}" data-k="${k}" ${done?"disabled":""}><span class="k">${"ABCD"[k]}</span><span>${esc(o[0])}${(done||CFG.zh)&&o[1]?`<span class="zh">${esc(o[1])}</span>`:""}</span></button>`}).join("");
+  $("qOpts").querySelectorAll(".opt").forEach(b=>b.onclick=()=>choose(+b.dataset.k));
+  if(done){const ok=sel===q.a;$("qAfter").innerHTML=`<div class="fb ${ok?"ok":"bad"}">${ok?"✓ 正确":"✗ 错了，正确答案是 "+"ABCD"[q.a]}</div>${q.ex?`<div class="exp"><b>解析：</b>${esc(q.ex)}</div>`:""}`}
+  else $("qAfter").innerHTML="";
+}
+function choose(k){const q=S.L[S.i];if(answered())return;S.ans[q.g]=k;const ok=k===q.a;
+  const r=ST.r[q.g]||{n:0,c:0};r.n++;if(ok)r.c++;r.l=ok?1:0;r.t=Date.now();ST.r[q.g]=r;
+  if(S.posKey)ST[S.posKey]=S.i;saveST();renderBody();playInfo();if(!$("qGrid").hidden)renderGrid()}
+function go(d){const n=S.i+d;if(n<0)return;if(n>=S.L.length){summary();return}S.i=n;if(S.posKey){ST[S.posKey]=S.i;saveST()}render();window.scrollTo(0,0)}
+$("qPrev").onclick=()=>go(-1);$("qNext").onclick=()=>go(1);
+$("qHome").onclick=()=>{if(S.posKey){ST[S.posKey]=S.i;saveST()}show("home")};
+$("qStar").onclick=()=>{const g=S.L[S.i].g;if(ST.fav[g])delete ST.fav[g];else ST.fav[g]=1;saveST();$("qStar").textContent=ST.fav[g]?"★":"☆";$("qStar").classList.toggle("on",!!ST.fav[g])};
+$("qGridBtn").onclick=()=>{$("qGrid").hidden=!$("qGrid").hidden;if(!$("qGrid").hidden)renderGrid()};
+function renderGrid(){$("qGrid").innerHTML=S.L.map((q,i)=>{const s=S.ans[q.g]!=null?(S.ans[q.g]===q.a?"c":"x"):(rec(q.g)?(rec(q.g).l?"c":"x"):"");return `<button class="${s}${i===S.i?" on":""}" data-i="${i}">${i+1}</button>`}).join("");
+  $("qGrid").querySelectorAll("button").forEach(b=>b.onclick=()=>{S.i=+b.dataset.i;render()})}
+function summary(){const ks=S.L.filter(q=>S.ans[q.g]!=null);const c=ks.filter(q=>S.ans[q.g]===q.a).length;
+  $("sumN").textContent=`${c} / ${ks.length}`;$("sumT").textContent=ks.length?`正确率 ${Math.round(c/ks.length*100)}%（本轮共 ${S.L.length} 题，做了 ${ks.length} 题）`:"这一轮还没有答题。";
+  const W=ks.filter(q=>S.ans[q.g]!==q.a);$("sumWrong").hidden=!W.length;$("sumWrong").onclick=()=>start(S.name+" · 错题",W,0,null);
+  show("sum")}
+$("sumHome").onclick=()=>show("home");
+document.addEventListener("keydown",e=>{if($("vQuiz").hidden||e.target.tagName==="SELECT")return;
+  if(e.key===" "){e.preventDefault();play()}else if(/^[a-dA-D1-4]$/.test(e.key)){const k=/\d/.test(e.key)?+e.key-1:"abcd".indexOf(e.key.toLowerCase());if(k<S.L[S.i].o.length)choose(k)}
+  else if(e.key==="ArrowRight")go(1);else if(e.key==="ArrowLeft")go(-1)});
+
+(async()=>{const d=await loadDB();if(d&&d.length){Q=d;show("home")}else show("imp")})();
+</script>
+<script src="update.js"></script>
+<script>document.getElementById('p1Upd').onclick=function(){var st=document.getElementById('p1UpdSt'),b=this;b.disabled=true;var f=function(t){st.textContent=t};
+  if(window.icaoUpdate)window.icaoUpdate(f).then(function(x){if(!x)b.disabled=false},function(){f('更新失败，继续用本机版本');b.disabled=false});else{f('更新组件没加载上，请刷新后再试');b.disabled=false}};</script>
+<script>if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost')){navigator.serviceWorker.register('sw.js').catch(function(){})}</script>
+</body></html>
